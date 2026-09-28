@@ -21,7 +21,7 @@ MCP_SERVER_CONFIG = {
         "transport": "streamable_http",
     },
     "analysis": {
-        "url": "https://mcp.api-inference.modelscope.net/af3893df5be041/mcp",
+        "url": "https://mcp.api-inference.modelscope.net/934b733c19fd43/mcp",
         "transport": "streamable_http",
     },
 }

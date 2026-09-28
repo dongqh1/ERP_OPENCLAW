@@ -16,7 +16,7 @@ def register_supplier_tools(mcp: FastMCP):
         http_client = ctx.request_context.lifespan_context.get("http_client")
 
         try:
-            response = await http_client.get("/suppliers/search", params=request_params)
+            response = await http_client.get("/suppliers/search", params={"name": name})
             response.raise_for_status()
             result = response.json()
             if result.get("code") != 200:

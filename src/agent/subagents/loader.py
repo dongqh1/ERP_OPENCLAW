@@ -177,19 +177,24 @@ def _validate_subagent_config(data: Dict, filename: str) -> List[str]:
     Returns:
         缺失的字段名列表（空列表表示通过校验）。
     """
+    if not isinstance(data, dict):
+        return ["配置顶层必须是 YAML 对象"]
+
     required = ["name", "description", "system_prompt", "tools"]
     missing = [f for f in required if f not in data or data[f] is None]
+
+    for field in ("name", "description", "system_prompt"):
+        if field in data and (
+            not isinstance(data[field], str) or not data[field].strip()
+        ):
+            missing.append(f"{field} (必须为非空字符串)")
 
     # tools 必须是非空列表
     if "tools" in data:
         tools = data["tools"]
         if not isinstance(tools, list) or len(tools) == 0:
             missing.append("tools (必须为非空列表)")
-
-    # system_prompt 不能为空字符串
-    if "system_prompt" in data:
-        sp = data["system_prompt"]
-        if not isinstance(sp, str) or not sp.strip():
-            missing.append("system_prompt (必须为非空字符串)")
+        elif any(not isinstance(tool, str) or not tool.strip() for tool in tools):
+            missing.append("tools (每个工具名必须为非空字符串)")
 
     return missing

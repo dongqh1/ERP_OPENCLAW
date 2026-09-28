@@ -2,7 +2,7 @@
 主 Agent 入口模块。
 
 使用 DeepAgents `create_deep_agent` 将所有组件串联为一个可运行的
-ERP 采购智能助手。采用 async graph factory 模式，每次调用创建新沙箱。
+ERP 采购智能助手。采用 async graph factory 模式，在项目运行期间复用共享沙箱。
 
 使用方式:
     from agent.main_agent import agent
@@ -31,7 +31,7 @@ from langchain.agents.middleware import (
 )
 from langchain_core.runnables import RunnableConfig
 
-from agent.backends.sandbox_setup import setup_sandbox
+from agent.backends.sandbox_lifecycle import get_shared_sandbox_backend
 
 from agent.config import (
     AGENTS_MD_FILENAME,
@@ -92,7 +92,7 @@ async def create_main_agent(
     """
     创建 ERP 采购智能助手的 async graph factory。
 
-    每次调用执行完整的 11 阶段初始化流水线：
+    每次调用创建新的 Agent graph，并在项目进程内复用同一个 OpenSandbox：
       1. 沙箱配置 → 1.4 AGENTS.md 写入 Store → 1.5 CompositeBackend 分流 → 2. MCP 工具加载
       → 3. 可视化工具合并 → 4. 工具池构建 → 5. 子 Agent YAML 加载
       → 6. 子 Agent 中间件 → 7. 工具名称解析
@@ -100,17 +100,17 @@ async def create_main_agent(
 
     Args:
         config: LangGraph RunnableConfig，由 langgraph 平台注入。
-        sandbox_id: 可选，复用已有沙箱 ID。为 None 时创建新沙箱。
+        sandbox_id: 可选，指定要复用的沙箱 ID；未指定时使用本地保存的 ID。
 
     Returns:
         编译后的 LangGraph StateGraph，可调用 .ainvoke() / .astream()。
     """
     logger.info("=== 开始创建 ERP 采购智能助手 ===")
 
-    # ---- Phase 1: 沙箱配置 ----
-    logger.info("Phase 1/10: 配置沙箱...")
+    # ---- Phase 1: 获取项目共享沙箱 ----
+    logger.info("Phase 1/10: 获取项目共享沙箱...")
     try:
-        sandbox_backend = setup_sandbox(SANDBOX_CONFIG, sandbox_id=sandbox_id)
+        sandbox_backend = get_shared_sandbox_backend(SANDBOX_CONFIG, sandbox_id=sandbox_id)
     except Exception:
         logger.exception("沙箱配置失败")
         raise RuntimeError("沙箱配置失败，无法创建 Agent")

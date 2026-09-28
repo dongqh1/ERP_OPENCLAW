@@ -1,3 +1,30 @@
+# ERP OpenClaw
+
+## 本地验证
+
+在项目根目录打开 PowerShell，执行：
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1
+```
+
+首次运行会通过 `uv` 和 `npm ci` 准备缺少的依赖；之后依次运行 Python 回归测试、Python 编译检查、前端测试和生产构建。验证过程会禁用 `.env` 自动加载，不会连接 MongoDB、ERP API 或 OpenSandbox。
+
+如果已经有装好依赖的 Python 环境，可以指定解释器以跳过 `uv` 环境准备：
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify.ps1 -PythonExe .\.venv\Scripts\python.exe
+```
+
+前端测试也可以单独运行：
+
+```powershell
+cd frontend
+npm test
+```
+
+---
+
 # New LangGraph Project
 
 [![CI](https://github.com/langchain-ai/new-langgraph-project/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/langchain-ai/new-langgraph-project/actions/workflows/unit-tests.yml)
@@ -58,4 +85,3 @@ Follow-up requests extend the same thread. You can create an entirely new thread
 For more advanced features and examples, refer to the [LangGraph documentation](https://langchain-ai.github.io/langgraph/). These resources can help you adapt this template for your specific use case and build more sophisticated conversational agents.
 
 LangGraph Studio also integrates with [LangSmith](https://smith.langchain.com/) for more in-depth tracing and collaboration with teammates, allowing you to analyze and optimize your chatbot's performance.
-

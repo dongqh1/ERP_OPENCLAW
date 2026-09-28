@@ -17,6 +17,7 @@ from typing import List, Tuple
 from opensandbox import SandboxSync
 
 from agent.backends.custom_opensandbox import OpenSandboxBackend
+from agent.backends.sandbox_lifecycle import connect_or_create_sandbox
 from agent.config import (
     LOCAL_SKILLS_DIR, SANDBOX_SKILLS_ROOT,
 )
@@ -34,22 +35,19 @@ def setup_sandbox(config, sandbox_id=None, image=None) -> OpenSandboxBackend:
     Returns:
         OpenSandboxBackend 实例。
     """
-    if sandbox_id:
-        print(f"[INFO] 正在连接到现有沙箱: {sandbox_id}")
-        try:
-            sandbox = SandboxSync.connect(sandbox_id, connection_config=config)
-            print(f"[INFO] 成功连接到沙箱: {sandbox_id}")
-        except Exception as e:
-            print(f"[WARNING] 连接沙箱失败: {e}，将创建新沙箱")
-            sandbox_id = None
+    def connect_existing(existing_id):
+        print(f"[INFO] 正在连接到现有沙箱: {existing_id}")
+        sandbox = SandboxSync.connect(existing_id, connection_config=config)
+        print(f"[INFO] 成功连接到沙箱: {existing_id}")
+        return sandbox
 
-    if not sandbox_id:
-        if not image:
-            image = "sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox/code-interpreter:v1.0.2"
-
-        print(f"[INFO] 正在创建新沙箱，使用镜像: {image}")
-        sandbox = SandboxSync.create(
-            image,
+    def create_new():
+        selected_image = image
+        if not selected_image:
+            selected_image = "sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox/code-interpreter:v1.0.2"
+        print(f"[INFO] 正在创建新沙箱，使用镜像: {selected_image}")
+        return SandboxSync.create(
+            selected_image,
             entrypoint=["/opt/opensandbox/code-interpreter.sh"],
             env={"PYTHON_VERSION": "3.11"},
             resource={"cpu": "2", "memory": "4Gi"},
@@ -63,6 +61,12 @@ def setup_sandbox(config, sandbox_id=None, image=None) -> OpenSandboxBackend:
             #     ]
             # )
         )
+
+    sandbox = connect_or_create_sandbox(
+        sandbox_id,
+        connect_existing=connect_existing,
+        create_new=create_new,
+    )
 
     backend = OpenSandboxBackend(sandbox=sandbox)
     print(f"[INFO] 沙箱就绪，ID: {sandbox.id}")

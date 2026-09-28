@@ -151,10 +151,19 @@ async function _processStream(response, threadId, callbacks, fullContent, toolCa
         continue
       }
 
+      let data
       try {
-        const data = JSON.parse(line.slice(5).trim())
+        data = JSON.parse(line.slice(5).trim())
+      } catch (parseError) {
+        // 如果是取消导致的，向上抛出；格式错误的事件继续读取后续流。
+        if (parseError.name === 'AbortError') {
+          throw parseError
+        }
+        console.warn('[ChatAPI] 解析 SSE 数据失败:', parseError)
+        continue
+      }
 
-        switch (data.type) {
+      switch (data.type) {
           case 'token':
             // AI 生成的文本片段
             fullContent += data.content
@@ -233,14 +242,6 @@ async function _processStream(response, threadId, callbacks, fullContent, toolCa
 
           default:
             break
-        }
-      } catch (parseError) {
-        // 如果是取消导致的，向上抛出
-        if (parseError.name === 'AbortError') {
-          throw parseError
-        }
-        // 忽略解析错误，可能是多行 JSON
-        console.warn('[ChatAPI] 解析 SSE 数据失败:', parseError)
       }
     }
   }

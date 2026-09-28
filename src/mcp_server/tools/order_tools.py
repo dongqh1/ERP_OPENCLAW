@@ -1,6 +1,6 @@
 import random
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from fastmcp import FastMCP, Context
 
@@ -16,16 +16,40 @@ def _generate_order_number() -> str:
     return f"PO{today}{suffix}"
 
 
-def _prepare_request(data: dict) -> dict:
-    """填充默认值并序列化请求体：Decimal→float，date→ISO字符串"""
-    # 自动生成 orderNumber
-    if not data.get("orderNumber"):
-        data["orderNumber"] = _generate_order_number()
+def _prepare_request(data: dict, *, for_create: bool = False) -> dict:
+    """填充订单金额和创建默认值，再序列化 Decimal 与日期字段。"""
+    details = data.get("orderDetail")
+    if details:
+        subtotal_values = []
+        for item in details:
+            subtotal = item.get("subtotal")
+            if subtotal is None:
+                quantity = item.get("quantity")
+                unit_price = item.get("unitPrice")
+                if quantity is None or unit_price is None:
+                    subtotal_values = []
+                    break
+                subtotal = (
+                    Decimal(str(quantity)) * Decimal(str(unit_price))
+                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                item["subtotal"] = subtotal
+            subtotal_values.append(Decimal(str(subtotal)))
 
-    # 默认 orderTime（格式：yyyy-MM-ddTHH:mm:ss.SSS，匹配后端 CustomLocalDateTimeDeserializer）
-    if not data.get("orderTime"):
-        now = datetime.now()
-        data["orderTime"] = now.strftime("%Y-%m-%dT%H:%M:%S.") + f"{now.microsecond // 1000:03d}"
+        if data.get("totalAmount") is None and len(subtotal_values) == len(details):
+            data["totalAmount"] = sum(subtotal_values, Decimal("0.00"))
+
+    if for_create:
+        # 自动生成订单号仅用于创建，部分更新不能改动原有订单号。
+        if not data.get("orderNumber"):
+            data["orderNumber"] = _generate_order_number()
+
+        # 默认下单时间（格式匹配后端 CustomLocalDateTimeDeserializer）。
+        if not data.get("orderTime"):
+            now = datetime.now()
+            data["orderTime"] = now.strftime("%Y-%m-%dT%H:%M:%S.") + f"{now.microsecond // 1000:03d}"
+
+        if data.get("status") is None:
+            data["status"] = 1
 
     # 递归序列化
     return _serialize_request(data)
@@ -104,7 +128,7 @@ def register_order_tools(mcp: FastMCP):
         if order_detail is not None:
             request_data["orderDetail"] = order_detail
 
-        request_data = _prepare_request(request_data)
+        request_data = _prepare_request(request_data, for_create=True)
 
         try:
             print(request_data)

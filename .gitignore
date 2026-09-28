@@ -9,6 +9,7 @@ dist/
 *.egg-info/
 .eggs/
 .pytest_cache/
+.venv/
 .mypy_cache/
 .ruff_cache/
 .coverage
@@ -19,6 +20,8 @@ htmlcov/
 .env.*
 !.env.example
 *.local
+.opensandbox_id
+.opensandbox_id.*.tmp
 
 # --- Node / frontend ---
 node_modules/

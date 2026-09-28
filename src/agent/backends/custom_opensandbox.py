@@ -3,10 +3,12 @@
 from __future__ import annotations
 import logging
 from collections.abc import Callable
+from datetime import timedelta
 from typing import cast
 
 from opensandbox import SandboxSync
 from opensandbox.models import WriteEntry
+from opensandbox.models.execd import RunCommandOpts
 
 from deepagents.backends.protocol import (
     ExecuteResponse,
@@ -111,7 +113,10 @@ class OpenSandboxBackend(BaseSandbox):
         """使用 OpenSandbox 的 API 执行命令。"""
         try:
             logger.debug(f"通过 OpenSandbox API 执行命令：{command}")
-            result = self._sandbox.commands.run(command)
+            result = self._sandbox.commands.run(
+                command,
+                opts=RunCommandOpts(timeout=timedelta(seconds=timeout)),
+            )
             logger.debug(f"命令执行完成，退出码：{result.exit_code}")
 
             # 提取标准输出与标准错误
@@ -174,7 +179,7 @@ class OpenSandboxBackend(BaseSandbox):
                 )
                 continue
             try:
-                content = self._sandbox.files.read_file(path)
+                content = self._sandbox.files.read_bytes(path)
                 # 统一转为 bytes
                 content_bytes = content.encode("utf-8") if isinstance(content, str) else content
                 responses.append(
