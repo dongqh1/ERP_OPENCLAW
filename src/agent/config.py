@@ -8,6 +8,7 @@ from langgraph.checkpoint.mongodb import MongoDBSaver
 from langgraph.store.memory import InMemoryStore
 from opensandbox.config import ConnectionConfigSync
 from pymongo import MongoClient
+import os
 
 from agent.env_utils import (
     DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL,
@@ -60,8 +61,8 @@ FALLBACK_MODEL = init_chat_model(
 # ---------- 沙箱配置 ----------
 # OpenSandbox 沙箱配置连接
 SANDBOX_CONFIG = ConnectionConfigSync(
-    domain="http://39.100.100.28:8080",
-    use_server_proxy=True,
+    domain="http://127.0.0.1:18080",
+    use_server_proxy=False,
     request_timeout=timedelta(seconds=60),
     transport=httpx.HTTPTransport(limits=httpx.Limits(max_connections=20)),
 )
@@ -107,7 +108,7 @@ SCOPE_MAP = {
 # ---------- 中间件参数 ----------
 
 # ---------- MongoDB 配置（用于持久化 Agent 短期记忆/checkpoint） ----------
-MONGODB_URI = "mongodb://root:123456@39.100.100.28:27017/?authSource=admin"
+MONGODB_URI = os.getenv("MONGODB_URI")
 MONGODB_DB_NAME = "langchain_db"
 MONGODB_CHECKPOINT_COLLECTION = "checkpoints"
 

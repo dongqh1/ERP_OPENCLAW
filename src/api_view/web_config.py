@@ -5,12 +5,13 @@
 """
 
 from pathlib import Path
+import os
 
 # ============================================================
 # MongoDB 配置 - 用于存储 Agent 的短期记忆（checkpoint）
 # ============================================================
 # MongoDB 连接 URI，格式: mongodb://用户名:密码@主机地址:端口/?authSource=认证数据库
-MONGODB_URI = "mongodb://root:123456@39.100.100.28:27017/?authSource=admin"
+MONGODB_URI =  os.getenv("MONGODB_URI")
 # MongoDB 数据库名称
 MONGODB_DB_NAME = "langchain_db"
 # MongoDB 集合名称，用于存储 checkpoint 数据
