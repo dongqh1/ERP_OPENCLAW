@@ -22,6 +22,8 @@ def test_repository_subagent_configs_load_and_resolve_tools():
         SimpleNamespace(name="supplier_query"),
         SimpleNamespace(name="supplier_search"),
         SimpleNamespace(name="order_create"),
+        SimpleNamespace(name="part_search"),
+        SimpleNamespace(name="part_by_supplier"),
         SimpleNamespace(name="evaluate_it_equipment_procurement"),
     ]
 
@@ -31,6 +33,7 @@ def test_repository_subagent_configs_load_and_resolve_tools():
     order = next(agent for agent in subagents if agent["name"] == "procurement-order")
     assert [tool.name for tool in analyst["tools"] if tool.name.startswith("supplier_")] == ["supplier_query"]
     assert "evaluate_it_equipment_procurement" in [tool.name for tool in analyst["tools"]]
+    assert {"part_search", "part_by_supplier"}.issubset({tool.name for tool in order["tools"]})
     assert "interrupt_on" in order
 
 
@@ -65,6 +68,9 @@ def test_it_equipment_routing_and_evidence_rules_are_explicit():
         assert field in analyst["system_prompt"]
     assert "needs_confirmation" in analyst["system_prompt"]
     assert "part_id" in order["system_prompt"]
+    assert "part_search" in order["system_prompt"]
+    assert "ERP 记录" in order["system_prompt"]
+    assert "停止下单" in order["system_prompt"]
     assert "expectedDeliveryDate" in order["system_prompt"]
     assert order["interrupt_on"]["order_create"]["allowed_decisions"] == ["approve", "reject"]
     assert order["interrupt_on"]["order_update"]["allowed_decisions"] == ["approve", "reject"]
