@@ -19,6 +19,7 @@ def test_repository_subagent_configs_load_and_resolve_tools():
         SimpleNamespace(name="supplier_query"),
         SimpleNamespace(name="supplier_search"),
         SimpleNamespace(name="order_create"),
+        SimpleNamespace(name="evaluate_it_equipment_procurement"),
     ]
 
     subagents = resolve_subagent_tools(configs, tools)
@@ -26,6 +27,7 @@ def test_repository_subagent_configs_load_and_resolve_tools():
     analyst = next(agent for agent in subagents if agent["name"] == "procurement-analyst")
     order = next(agent for agent in subagents if agent["name"] == "procurement-order")
     assert [tool.name for tool in analyst["tools"] if tool.name.startswith("supplier_")] == ["supplier_query"]
+    assert "evaluate_it_equipment_procurement" in [tool.name for tool in analyst["tools"]]
     assert "interrupt_on" in order
 
 

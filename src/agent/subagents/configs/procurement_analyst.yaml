@@ -26,6 +26,7 @@ tools:
   - order_search_details       # 搜索订单明细 → /orders/search-details
   - inventory_warning          # 库存预警列表 → /inventory/warning
   - evaluate_project_procurement # 项目预算/交期约束下的确定性方案校验
+  - evaluate_it_equipment_procurement # IT 设备规格、预算、交期及保修的确定性校验
   # 图表生成（26 种图表/地图/图表合并为 1 个入口，通过 chart_type 参数路由）
   - generate_visualization     # 可视化生成入口
   # 通用工具
