@@ -14,8 +14,9 @@
       <!-- 对话区域 -->
       <ChatArea
         :messages="messages"
-        :streaming="isStreaming"
+        :streaming="isStreaming || isResuming"
         :show-tool-calls="showToolCalls"
+        @suggestion="handleSend"
       />
 
       <!-- ★ 人工介入中断横幅（数据补充 / HITL 审批） -->
@@ -189,7 +190,7 @@ function handleStop() {
  * 发送消息
  */
 async function handleSend(message) {
-  if (isStreaming.value) return
+  if (isStreaming.value || isResuming.value) return
 
   // 添加用户消息
   messages.value.push({
