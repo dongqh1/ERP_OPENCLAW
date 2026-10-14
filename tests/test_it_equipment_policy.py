@@ -69,6 +69,46 @@ def test_recommends_lowest_total_eligible_offer(request_data):
     assert result["summary"]
 
 
+def test_exact_total_orders_offers_before_rounding_display_amount(request_data):
+    request_data["quantity"] = 1
+    request_data["offers"] = request_data["offers"][:2]
+    request_data["offers"][0]["unit_price"] = "1200.101"
+    request_data["offers"][0]["supplier_name"] = "Pricier"
+    request_data["offers"][0]["delivery_date"] = "2026-11-20"
+    request_data["offers"][1]["unit_price"] = "1200.100"
+    request_data["offers"][1]["supplier_name"] = "Cheaper"
+    request_data["offers"][1]["delivery_date"] = "2026-11-25"
+
+    result = evaluate_it_equipment_policy(request_data)
+
+    assert result["offers"][0]["estimated_total"] == "1200.10"
+    assert result["offers"][1]["estimated_total"] == "1200.10"
+    assert result["recommendation"]["supplier_name"] == "Cheaper"
+    assert "_sort_total" not in result["offers"][0]
+
+
+def test_equal_price_prefers_longer_warranty_before_delivery_date(request_data):
+    request_data["quantity"] = 1
+    request_data["offers"] = request_data["offers"][:2]
+    request_data["offers"][0]["unit_price"] = "1200.00"
+    request_data["offers"][0]["supplier_name"] = "Long Warranty"
+    request_data["offers"][0]["warranty_months"] = 48
+    request_data["offers"][0]["delivery_date"] = "2026-11-28"
+    request_data["offers"][1]["unit_price"] = "1200.00"
+    request_data["offers"][1]["supplier_name"] = "Earlier Delivery"
+    request_data["offers"][1]["warranty_months"] = 24
+    request_data["offers"][1]["delivery_date"] = "2026-11-20"
+
+    result = evaluate_it_equipment_policy(request_data)
+
+    assert result["recommendation"]["supplier_name"] == "Long Warranty"
+    assert [offer["supplier_name"] for offer in result["offers"]] == [
+        "Long Warranty",
+        "Earlier Delivery",
+    ]
+    assert all("_sort_total" not in offer for offer in result["offers"])
+
+
 def test_missing_delivery_or_critical_spec_is_unverified_and_never_recommended(request_data):
     request_data["offers"] = request_data["offers"][:1]
     offer = request_data["offers"][0]

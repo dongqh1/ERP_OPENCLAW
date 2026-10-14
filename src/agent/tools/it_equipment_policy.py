@@ -174,6 +174,7 @@ def evaluate_it_equipment_policy(request: dict) -> dict:
             "unit_price": _money(price) if price is not None else None,
             "quantity": quantity,
             "estimated_total": _money(total) if total is not None else None,
+            "_sort_total": total if total is not None else Decimal("Infinity"),
             "delivery_date": delivery.isoformat() if delivery else None,
             "warranty_months": offer.get("warranty_months"),
             "cpu_cores": offer.get("cpu_cores"),
@@ -187,11 +188,18 @@ def evaluate_it_equipment_policy(request: dict) -> dict:
         }
         evaluated.append(evaluated_offer)
 
-    evaluated.sort(key=lambda item: (
-        {"eligible": 0, "needs_confirmation": 1, "ineligible": 2}[item["status"]],
-        Decimal(item["estimated_total"]) if item["estimated_total"] is not None else Decimal("Infinity"),
-        item["delivery_date"] or "9999-12-31",
-    ))
+    def sort_key(item: dict) -> tuple:
+        warranty = _decimal(item["warranty_months"])
+        return (
+            {"eligible": 0, "needs_confirmation": 1, "ineligible": 2}[item["status"]],
+            item["_sort_total"],
+            -warranty if warranty is not None else Decimal("Infinity"),
+            item["delivery_date"] or "9999-12-31",
+        )
+
+    evaluated.sort(key=sort_key)
+    for offer in evaluated:
+        del offer["_sort_total"]
     recommendation = next((item for item in evaluated if item["status"] == "eligible"), None)
     message = (
         "已找到满足预算、配置、保修及交期要求的合格报价，并推荐总价最低方案。"
