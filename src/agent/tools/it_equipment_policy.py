@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Any
@@ -54,6 +55,16 @@ def _decimal(value: Any) -> Decimal | None:
 
 def _money(value: Decimal) -> str:
     return str(value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+
+def serialize_it_equipment_result(result: dict) -> str:
+    """Serialize policy output without losing exact Decimal specification values."""
+    def encode_decimal(value: Any) -> str:
+        if isinstance(value, Decimal):
+            return str(value)
+        raise TypeError(f"Object of type {type(value).__name__} is not JSON serializable")
+
+    return json.dumps(result, ensure_ascii=False, indent=2, default=encode_decimal)
 
 
 def evaluate_it_equipment_policy(request: dict) -> dict:

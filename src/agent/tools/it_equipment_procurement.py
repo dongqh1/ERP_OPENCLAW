@@ -2,14 +2,16 @@
 
 from __future__ import annotations
 
-import json
 from datetime import date
 from decimal import Decimal
 
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
-from agent.tools.it_equipment_policy import evaluate_it_equipment_policy
+from agent.tools.it_equipment_policy import (
+    evaluate_it_equipment_policy,
+    serialize_it_equipment_result,
+)
 
 
 class ITEquipmentOffer(BaseModel):
@@ -74,4 +76,4 @@ def evaluate_it_equipment_procurement(
         "allowed_operating_systems": allowed_operating_systems,
         "offers": [ITEquipmentOffer.model_validate(offer).model_dump() for offer in offers],
     })
-    return json.dumps(result, ensure_ascii=False, indent=2)
+    return serialize_it_equipment_result(result)

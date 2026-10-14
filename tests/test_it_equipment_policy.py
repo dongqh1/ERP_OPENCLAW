@@ -1,4 +1,5 @@
 import importlib.util
+import json
 from decimal import Decimal
 from pathlib import Path
 
@@ -114,3 +115,20 @@ def test_estimated_total_uses_exact_decimal_arithmetic(request_data):
 
     assert result["offers"][0]["estimated_total"] == "3600.30"
     assert Decimal(result["offers"][0]["estimated_total"]) == Decimal("3600.30")
+
+
+def test_tool_result_serializes_decimal_specifications(request_data):
+    request_data["min_memory_gb"] = Decimal("16.5")
+    request_data["min_storage_gb"] = Decimal("512.5")
+    request_data["offers"][0]["memory_gb"] = Decimal("32.0")
+    request_data["offers"][0]["storage_gb"] = Decimal("1024.0")
+    request_data["offers"] = request_data["offers"][:1]
+
+    result = evaluate_it_equipment_policy(request_data)
+    payload = json.loads(_policy.serialize_it_equipment_result(result))
+
+    assert payload["request_summary"]["min_memory_gb"] == "16.5"
+    assert payload["request_summary"]["min_storage_gb"] == "512.5"
+    assert payload["offers"][0]["memory_gb"] == "32.0"
+    assert payload["offers"][0]["storage_gb"] == "1024.0"
+    assert payload["recommendation"]["status"] == "eligible"
