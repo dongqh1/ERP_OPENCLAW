@@ -4,25 +4,25 @@
     <div class="message-list" ref="messageListRef">
       <!-- 空状态 -->
       <div v-if="displayMessages.length === 0" class="empty-state">
-        <div class="empty-icon"><img src="https://www-static.mashibing.com/_nuxt/img/logo.69f6ec8.svg" alt="logo" /></div>
-        <h2>基于Harness Engineering的智能助手</h2>
-        <p>我是你的 AI 助手，可以帮助你完成各种任务</p>
+        <div class="empty-icon"><span>项目采购</span></div>
+        <h2>研发项目采购决策助手</h2>
+        <p>结合项目预算、采购需求与交付期限，生成有数据依据的采购方案</p>
         <div class="feature-list">
           <div class="feature-item">
-            <span class="feature-icon">📊</span>
-            <span>数据分析和图表生成</span>
+            <span class="feature-icon">💰</span>
+            <span>项目预算约束校验</span>
           </div>
           <div class="feature-item">
-            <span class="feature-icon">🔍</span>
-            <span>网络搜索和信息查询</span>
+            <span class="feature-icon">📅</span>
+            <span>交付期限可行性分析</span>
           </div>
           <div class="feature-item">
-            <span class="feature-icon">💻</span>
-            <span>代码编写和调试</span>
+            <span class="feature-icon">🔎</span>
+            <span>供应商报价与来源追溯</span>
           </div>
           <div class="feature-item">
-            <span class="feature-icon">📝</span>
-            <span>文档处理和写作</span>
+            <span class="feature-icon">✅</span>
+            <span>人工审批后创建采购单</span>
           </div>
         </div>
       </div>
@@ -166,13 +166,22 @@ function scrollToBottom() {
 }
 
 .empty-icon {
+  width: 112px;
+  height: 112px;
   margin-bottom: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 32px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #0f766e 0%, #2563eb 100%);
+  box-shadow: 0 18px 36px rgba(37, 99, 235, 0.2);
   animation: float 3s ease-in-out infinite;
 }
 
-.empty-icon img {
-  width: 240px;
-  height: 240px;
+.empty-icon span {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 2px;
 }
 
 @keyframes float {

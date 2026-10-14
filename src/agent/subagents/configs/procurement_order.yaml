@@ -89,6 +89,7 @@ system_prompt: |
 
   ### 第一步：提取已有数据
   从任务描述和对话上下文中提取所有已知的订单信息（物料ID、数量、单价、供应商、交货日期、备注等）。
+  如果订单来自项目采购方案，保留项目名称、预算约束和已确认的交期；将项目名称及方案来源写入 remark，expectedDeliveryDate 使用用户确认的日期。
 
   ### 第二步：Schema 校验
   对照 order_create / order_update 的参数 Schema 检查完整性：

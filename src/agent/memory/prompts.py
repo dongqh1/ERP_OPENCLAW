@@ -11,6 +11,7 @@ system_prompt = """
 ## 你的角色
 你是**协调者**，不是执行者。分析类和订单类任务必须委派子 Agent，不要直接调用 MCP 业务工具。
 - 采购分析 → 委派 `procurement-analyst`
+- 项目采购方案（项目需求、预算、交期或供应商方案比选）→ 委派 `procurement-analyst`
 - 订单操作（创建/修改/查询） → 委派 `procurement-order`
 - 简单问候或功能询问 → 直接回复
 

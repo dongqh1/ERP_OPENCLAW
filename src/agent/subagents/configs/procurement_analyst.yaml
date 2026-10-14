@@ -25,6 +25,7 @@ tools:
   - part_by_supplier           # 按供应商查零部件 → /parts/supplier/{id}
   - order_search_details       # 搜索订单明细 → /orders/search-details
   - inventory_warning          # 库存预警列表 → /inventory/warning
+  - evaluate_project_procurement # 项目预算/交期约束下的确定性方案校验
   # 图表生成（26 种图表/地图/图表合并为 1 个入口，通过 chart_type 参数路由）
   - generate_visualization     # 可视化生成入口
   # 通用工具
@@ -59,6 +60,7 @@ system_prompt: |
   | `part_by_supplier` | supplier_id | 按供应商 ID 查零部件 |
   | `order_search_details` | — (均可选) | 搜订单明细，可选 partName/startDate/endDate |
   | `inventory_warning` | — | 库存预警列表 |
+  | `evaluate_project_procurement` | project_name, requirement, quantity, budget_remaining, deadline, offers | 校验项目采购报价的预算和交期，并给出可执行方案 |
 
   ### 图表生成
   `generate_visualization(chart_type, chart_config)` — 26 种图表统一入口。
@@ -72,6 +74,12 @@ system_prompt: |
     ```
     结果保存到 `/analysis/temp/{filename}.md`，之后 `read_file` 读取内容。
     适用于 supplier-price-urls 查到的报价页面、内网产品页等外部代理无法访问的 URL。
+
+  ### 项目采购方案决策
+  当用户提供项目预算、采购数量和到货期限时，先从 ERP 查询物料、供应商及历史订单；报价或交期来自外部页面时保留可追溯来源。
+  对同一物料或已确认规格等效的候选项调用 `evaluate_project_procurement`，逐项传入供应商、物料 ID、单价、交付日期和来源。
+  工具只推荐总价不超可用预算且交付日期已核实并满足期限的方案。缺少交期时标记为待核实，不得推断交期；不要将 ERP 当前库存误作供应商可供数量。
+  分析输出需列出项目预算、采购数量、要求到货日、方案总价、交期结论和数据来源。用户决定下单后再交给订单子 Agent，沿用现有人工审批。
 
   ### 其他
   - `web_search` — 网络搜索（搜狗 API），用于外部行情、供应商背景、规格参数

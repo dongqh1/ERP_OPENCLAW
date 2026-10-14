@@ -61,6 +61,7 @@ from agent.tools.hitl_tools import request_order_info
 from agent.tools.assign_skill import create_assign_skill_tool
 from agent.tools.download_sandbox_file import create_download_tool
 from agent.tools.mcp_client import load_mcp_tools
+from agent.tools.project_procurement import evaluate_project_procurement
 from agent.tools.web_search import web_search
 
 def _setup_logging() -> None:
@@ -176,6 +177,7 @@ async def create_main_agent(
         + [generate_visualization]
         + [web_search]
         + [request_order_info]
+        + [evaluate_project_procurement]
         + [assign_skill]
         + [download_sandbox_file]
     )
