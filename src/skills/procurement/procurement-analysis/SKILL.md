@@ -10,6 +10,7 @@ description: >
 ## 适用场景
 - 供应商比价分析（多供应商、同物料价格对比）
 - 研发项目采购决策（结合项目可用预算、采购数量和要求到货日期筛选方案）
+- 企业 IT 设备采购决策（电脑、服务器、网络/办公设备的配置、预算、交期和保修校验）
 - 物料行情评估（价格趋势、供需分析）
 - 供应商综合评分（按信用评级、价格、交期加权打分）
 - 采购策略建议（分阶段采购、集中采购、备选供应商推荐）
@@ -23,14 +24,14 @@ description: >
 
 ### 第 2 步：收集数据
 
-**2a. ERP 内部数据（必须）**
+**2a. ERP 内部数据（先查询）**
 - `supplier_query(name="供应商名")` → 供应商列表
 - `part_query(name="物料名")` 或 `part_search(name="物料名")` → 零部件
 - `part_by_supplier(supplier_id=N)` → 按供应商查零部件
 - `order_search_details(partName="xxx")` → 历史订单价格
 - `inventory_warning()` → 库存预警
 
-**2b. 外部数据（不可跳过）**
+**2b. 外部数据（研发物料比价时不可跳过）**
 1. 激活 `/skills/procurement/supplier-price-urls/`，读取 `data/url_mapping.yaml`
 2. 按零部件名 + 供应商名查找对应报价 URL
 3. **找到 URL** → 使用 `web-scraper` 直接抓取：
@@ -56,6 +57,11 @@ description: >
 对同一物料或规格已核实等效的候选方案调用 `evaluate_project_procurement`，参数包括 `project_name`、`requirement`、`quantity`、`budget_remaining`、`deadline` 和 `offers`。每个 offer 至少包含 `supplier_name`、`part_id`、`part_name`、`unit_price`、`source`；交付日期未知时将 `delivery_date` 留空。
 只把同时满足预算、且有已核实交期并满足期限的方案表述为“可执行推荐”。交期缺失时明确标为待核实；不得用模型估计值填入工具输入。不要把 ERP 当前库存解释为供应商可供数量。
 此工具只生成方案，不创建订单。用户确认下单后交由订单子 Agent，订单仍需经过人工审批。
+
+### 企业 IT 设备采购约束校验
+先确认 `device_type`、`requirement`、`quantity`、`budget_remaining`、`deadline`、`minimum_warranty_months`、`min_cpu_cores`、`min_memory_gb`、`min_storage_gb` 和 `allowed_operating_systems`。ERP 查询用于核实供应商、物料 ID 和历史记录；现有零部件目录不等于 IT 设备目录，设备身份及规格必须另行核实。
+供应商报价或用户提供的信息可作为候选来源，每条 offer 分别填写 `supplier_name`、`supplier_id`、`part_id`、`device_type`、`model_name`、`unit_price`、`delivery_date`、`warranty_months`、`cpu_cores`、`memory_gb`、`storage_gb`、`operating_system`、`source`。来源需指向具体 ERP 记录、报价页或用户确认内容。未核实字段传空值或缺省，不得补造目录、型号、价格、库存、交期、保修及参数。
+调用 `evaluate_it_equipment_procurement` 校验各方案；它不查询 ERP，也不创建订单。报告中分别列明 `eligible`、`needs_confirmation` 和 `ineligible` 及原因，只推荐满足全部硬约束且证据齐全的 `eligible` 方案。用户确认下单后，将已核验的 ERP `part_id`、型号、配置、报价来源和交期交给订单子 Agent；继续通过 `request_order_info` 补缺与 `order_create`/`order_update` 人工 approve/reject 审批。
 
 ### 第 4 步：生成图表
 1. **首次调用图表前**：`read_file("/skills/procurement/chart_params.md")` 获取 26 种图表参数速查（紧凑格式，仅 data 格式 + 特有参数，通用参数已提取到顶部表格，不逐图重复）
