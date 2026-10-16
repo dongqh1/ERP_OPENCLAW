@@ -40,6 +40,7 @@ def create_assign_skill_tool(sandbox_backend, store, skills_namespace):
                 - "main" — 分配给主 Agent 自身（技能已就位，直接持久化）
                 - "procurement-analyst" — 分配给采购分析子 Agent
                 - "procurement-order" — 分配给采购订单子 Agent
+                - "pc"、"pc-hardware-analyst" 或 "pc-build-planner" — 分配给 PC 配置领域
 
         Returns:
             分配确认或错误信息。

@@ -22,6 +22,7 @@ from agent.schema import (
     ChatResponse,
     Message,
 )
+from agent.router import route_domain
 from api_view.agent_loader import agent_loader
 
 
@@ -139,7 +140,7 @@ def extract_content_from_token(token) -> str:
     return str(content) if content is not None else ""
 
 
-def serialize_tool_result(content) -> dict:
+def serialize_tool_result(content, tool_name: str = "") -> dict:
     """
     将工具执行结果序列化为前端可用的结构化数据
 
@@ -200,6 +201,14 @@ def serialize_tool_result(content) -> dict:
             if url not in result["images"]:
                 result["images"].append(url)
 
+        # 图表 MCP 通常返回裸图片 URL，而不是 Markdown 图片语法。
+        # 只对可视化工具把 URL 当图片，避免把普通业务链接误渲染成图。
+        if tool_name == "generate_visualization":
+            for match in re.finditer(r"https?://[^\s<>\"'`]+", result["text"]):
+                url = match.group(0).rstrip(".,;:!?)]}")
+                if url and url not in result["images"]:
+                    result["images"].append(url)
+
     return result
 
 
@@ -228,6 +237,7 @@ async def stream_chat_response(
     message: str = None,
     thread_id: str = None,
     resume_data: dict = None,
+    requested_domain: str = None,
 ) -> AsyncIterator[str]:
     """
     流式生成对话响应，支持 Human-in-the-Loop 中断与恢复。
@@ -241,6 +251,42 @@ async def stream_chat_response(
 
     同时累积完整的展示消息列表（包含子代理消息），在流结束后存入 MongoDB。
     """
+    await agent_loader.initialize()
+    stored_domain = agent_loader.get_session_domain(thread_id, default=None) if thread_id else None
+    if stored_domain is None and agent_loader.has_existing_session_data(thread_id):
+        # 领域元数据上线前的历史会话全部属于原汽车采购 Agent。
+        stored_domain = "car"
+
+    # 一个会话只属于一个领域。前端切换领域时会新建会话；如果旧客户端或过期页面
+    # 用原 thread_id 请求另一个领域，明确提示而不是静默沿用旧 Agent。
+    def _domain_mismatch_message(current_domain: str, requested: str) -> str:
+        domain_names = {
+            "car": "汽车零部件采购",
+            "pc": "PC 电脑配置采购",
+        }
+        return (
+            f"当前会话属于{domain_names.get(current_domain, current_domain)}。"
+            f"为避免不同领域的对话上下文混用，请新建{domain_names.get(requested, requested)}会话后再提问。"
+        )
+
+    if stored_domain and requested_domain and stored_domain != requested_domain:
+        yield create_sse_message({
+            "type": "error",
+            "message": _domain_mismatch_message(stored_domain, requested_domain),
+        })
+        return
+
+    selected_domain = stored_domain or route_domain(message or "", requested_domain)
+    selected_domain = agent_loader.set_session_domain(thread_id, selected_domain)
+    # 再校验最终写入值，覆盖两个首次请求并发绑定同一新会话的情况。
+    if requested_domain and selected_domain != requested_domain:
+        yield create_sse_message({
+            "type": "error",
+            "message": _domain_mismatch_message(selected_domain, requested_domain),
+        })
+        return
+    graph = await agent_loader.get_agent_for_domain(selected_domain)
+
     context = {"user_id": "laoxiao", "username": "laoxiao"}
     config = agent_loader.create_config(thread_id)
     collected_content = ""
@@ -275,12 +321,13 @@ async def stream_chat_response(
         write_debug_log(debug_log, "STREAM_START", {
             "message": message,
             "thread_id": thread_id,
+            "domain": selected_domain,
             "is_resume": resume_data is not None,
         })
 
         # 流式调用 agent.astream()
         # stream_mode=["messages", "values"] — messages 流显示 + values 流检测中断
-        async for chunk in agent_loader.agent.astream(
+        async for chunk in graph.astream(
             input=current_input,
             config=config,
             context=context,
@@ -308,6 +355,7 @@ async def stream_chat_response(
                             "action_requests": interrupt_value["action_requests"],
                             "review_configs": interrupt_value.get("review_configs", []),
                             "thread_id": thread_id,
+                            "domain": selected_domain,
                         })
                         write_debug_log(debug_log, "INTERRUPT_HITL", {
                             "actions": [a["name"] for a in interrupt_value["action_requests"]],
@@ -321,6 +369,7 @@ async def stream_chat_response(
                             "missing_fields": interrupt_value["missing_fields"],
                             "collected_data": interrupt_value["collected_data"],
                             "thread_id": thread_id,
+                            "domain": selected_domain,
                         })
                         write_debug_log(debug_log, "INTERRUPT_SUPPLEMENT", {
                             "missing_fields": interrupt_value["missing_fields"],
@@ -333,6 +382,7 @@ async def stream_chat_response(
                             "interrupt_type": "unknown",
                             "interrupt_value": str(interrupt_value)[:2000],
                             "thread_id": thread_id,
+                            "domain": selected_domain,
                         })
 
                 # 兜底：将所有 calling 状态的工具标记为 done
@@ -360,6 +410,7 @@ async def stream_chat_response(
                     "thread_id": thread_id,
                     "content": collected_content,
                     "interrupted": True,
+                    "domain": selected_domain,
                 })
                 return  # ← 结束本次流，等待前端 POST /resume
 
@@ -442,7 +493,7 @@ async def stream_chat_response(
                 result_content = getattr(token, 'content', '')
 
                 # 序列化工具结果为结构化数据
-                serialized = serialize_tool_result(result_content)
+                serialized = serialize_tool_result(result_content, tool_name)
 
                 # 从栈中弹出对应工具（栈顶即为当前完成的工具）
                 finished_tool = tool_call_stack.pop() if tool_call_stack else None
@@ -555,7 +606,8 @@ async def stream_chat_response(
         yield create_sse_message({
             "type": "done",
             "thread_id": thread_id,
-            "content": collected_content
+            "content": collected_content,
+            "domain": selected_domain,
         })
 
     except Exception as e:
@@ -582,7 +634,11 @@ async def chat_stream(request: ChatRequest):
     thread_id = request.thread_id or str(uuid.uuid4())
 
     return StreamingResponse(
-        stream_chat_response(message=request.message, thread_id=thread_id),
+        stream_chat_response(
+            message=request.message,
+            thread_id=thread_id,
+            requested_domain=request.domain,
+        ),
         media_type="text/event-stream",  # text/json, text/html, image/jpg
         headers={
             "Cache-Control": "no-cache",

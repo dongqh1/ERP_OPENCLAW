@@ -2,18 +2,20 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (- [x]) syntax for tracking.
 
-**Goal:** 在现有采购助手中交付可追溯、可验证的企业 IT 设备采购评估能力，并保留研发项目采购和人工审批流程。
+**Goal:** 在现有采购助手中交付可查询、可评估、可走原订单审批链路的企业 IT 设备采购演示场景，同时保留摩托车零部件和研发项目采购功能。
 
-**Architecture:** 新增纯 Python 策略模块负责确定性约束判定，LangChain Tool 负责参数 Schema 与 Agent 调用。采购分析 Agent 复用现有 ERP 查询和供应商工具；未知设备属性保持待核实，不增加未经证实的 ERP API 或产品数据。
+**Architecture:** Java ERP 新增独立 IT 目录查询 API、规格扩展表与幂等模拟数据；新物料通过现有 `part`、`supplier`、`inventory` 记录关联，订单仍复用原有 `part_id`、订单 API 与 HITL 审批。FastMCP 新增目录工具，采购分析和订单子 Agent 通过该工具查询/复核 IT 设备；现有 IT 硬约束评估器继续决定预算、配置、交期和保修是否满足。所有演示记录带 `IT-DEMO-*` 前缀，并明确标注为模拟数据。
 
-**Tech Stack:** Python 3.10+、Pydantic、LangChain Tool Calling、LangGraph/DeepAgents、Vue 3、pytest。
+**Tech Stack:** Java 17、Spring Boot、JdbcTemplate、MySQL、FastMCP、Python 3.10+、Pydantic、LangChain Tool Calling、LangGraph/DeepAgents、Vue 3。
 
 ## Global Constraints
 
-- 不修改 Java ERP 服务或假定新 API 存在。
-- 不生成虚构的设备目录、价格、交期、保修或库存数据。
+- 不修改现有摩托车数据初始化器、既有 API 的行为或原订单流程；只新增独立 IT 功能。
+- IT 目录是显式标注的本地模拟数据，不得包装成真实市场报价或真实供应商数据；库存字段只代表 ERP 账面库存。
+- Java ERP 仓库已有用户未提交文件。只新增本功能所需的新 Java 文件，不能重写或清理现有未提交修改。
 - 订单创建和修改继续由 procurement-order Agent 执行并走现有 HITL 审批。
 - 单次策略评估处理同一设备类别和数量；所有金额使用 Decimal。
+- 前端保留原有项目采购和 IT 入口，并添加摩托车零部件示例，不删除既有页面和交互。
 
 ---
 
@@ -89,3 +91,49 @@
 - [x] 运行 `python -m compileall -q src/agent`。
 - [x] 运行前端测试和生产构建。
 - [x] 检查 `git diff --check` 与 Git 状态，确保已有用户未提交文件没有进入本次变更。
+
+---
+
+## 增量扩展：可查询的 IT 设备采购演示目录
+
+### Task 6: Java ERP IT 目录 API 与隔离演示数据
+
+**Files:**
+- Create: Java ERP `src/main/java/com/motorparts/init/ItEquipmentDemoInitializer.java`
+- Create: Java ERP `src/main/java/com/motorparts/controller/ItEquipmentController.java`
+- Create: Java ERP `src/main/java/com/motorparts/service/ItEquipmentCatalogService.java`
+- Create: Java ERP `src/main/java/com/motorparts/dto/ItEquipmentOffer.java`
+
+- [x] 增加 IT 规格扩展表，数据按稳定物料编码关联到 `part`；新增演示供应商、IT 物料和账面库存时只使用 `IT-DEMO-*` 编码，初始化重复运行不会覆盖用户订单或既有摩托车记录。
+- [x] 增加 `/api/it-equipment/search`，支持类别、CPU、内存、存储、操作系统、单价、保修和交期筛选，返回 ERP `part_id`、供应商、规格、账面库存、模拟来源和预计交付日期。
+- [x] 响应显式写出本地模拟来源，预计交付日期从当前日期与演示交期天数计算，不将账面库存解释为供应商供货量。
+- [x] 只新增文件；不修改 Java 仓库中已有未提交的控制器、服务、配置和初始化器。
+
+### Task 7: FastMCP 与 Agent 目录查询/订单复核
+
+**Files:**
+- Create: `src/mcp_server/tools/it_equipment_tools.py`
+- Modify: `src/mcp_server/server_main.py`
+- Modify: `src/agent/tools/mcp_client.py`
+- Modify: `src/agent/subagents/configs/procurement_analyst.yaml`
+- Modify: `src/agent/subagents/configs/procurement_order.yaml`
+- Modify: `src/agent/memory/AGENTS.md`
+- Modify: `src/skills/procurement/procurement-analysis/SKILL.md`
+
+- [x] 新增 `it_equipment_search` FastMCP Tool，映射查询参数并原样保留可核验来源与 ERP ID。
+- [x] 让分析 Agent 获取该工具；让订单 Agent 在已有订单审批之前用该工具复核 IT `part_id`、型号、供应商和配置。
+- [x] 保留“不得把模拟报价冒充真实市场来源”“账面库存不是供应商可供量”指引；保留原人工 approve/reject 流程。
+
+### Task 8: 前端入口与运行说明
+
+**Files:**
+- Modify: `frontend/src/components/ChatArea.vue`
+- Modify: `README.md`
+
+- [x] 保留研发项目采购和 IT 采购卡片，并增加原摩托车零部件采购示例卡片；三个入口共用已有的对话发送流程。
+- [x] 页面与文档清楚标注 IT 数据为本地模拟目录，写明启动 Java ERP 后由 API/MCP 查询，并说明订单仍经过人工审批。
+
+### Task 9: 收尾检查
+
+- [x] 检查新增/修改清单，确保摩托车 SQL、初始化器及原 API 行为没有被改动。
+- [x] 检查差异和空白错误；按当前任务约束不新增或运行测试。

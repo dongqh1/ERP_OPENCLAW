@@ -1,7 +1,7 @@
 {
-  "name": "deepagent-chat-frontend",
+  "name": "caiheng-procurement-workspace",
   "version": "1.0.0",
-  "description": "DeepAgent 聊天前端 - 基于 Vue 3",
+  "description": "采衡智能采购决策工作台前端",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -4,6 +4,7 @@
     <Sidebar
       :sessions="sessions"
       :current-thread-id="currentThreadId"
+      :current-domain="selectedDomain"
       @select-session="handleSelectSession"
       @new-chat="handleNewChat"
       @delete-session="handleDeleteSession"
@@ -16,6 +17,8 @@
         :messages="messages"
         :streaming="isStreaming || isResuming"
         :show-tool-calls="showToolCalls"
+        :domain="selectedDomain"
+        @domain-select="handleDomainSelect"
         @suggestion="handleSend"
       />
 
@@ -36,6 +39,7 @@
         :disabled="false"
         :streaming="isStreaming"
         :show-tool-calls="showToolCalls"
+        :domain="selectedDomain"
       />
     </main>
   </div>
@@ -51,7 +55,7 @@ import { streamChat, resumeChat } from './api/chat.js'
 import { getSessions, getMessages, deleteSession } from './api/history.js'
 
 /**
- * DeepAgent 聊天应用主组件
+ * 采衡采购工作台主组件
  *
  * 消息流按时间顺序混合展示：
  *   [user] → [assistant 文本] → [tool 调用] → [assistant 文本] → ...
@@ -67,6 +71,8 @@ import { getSessions, getMessages, deleteSession } from './api/history.js'
 const sessions = ref([])
 // 当前会话 ID
 const currentThreadId = ref(null)
+// 当前选择的采购领域；会话建立后由后端元数据固定
+const selectedDomain = ref(null)
 // 消息列表（混合 user/assistant/tool，按时间顺序）
 const messages = ref([])
 // 是否正在流式输出
@@ -115,8 +121,18 @@ async function handleSelectSession(threadId) {
   if (threadId === currentThreadId.value) return
 
   currentThreadId.value = threadId
+  const session = sessions.value.find(item => item.thread_id === threadId)
+  selectedDomain.value = session?.domain || 'car'
   interruptData.value = null  // 切换会话时清除中断状态
   await loadMessages(threadId)
+}
+
+function handleDomainSelect(domain) {
+  if (!['car', 'pc'].includes(domain)) return
+  if (currentThreadId.value || messages.value.length) {
+    handleNewChat()
+  }
+  selectedDomain.value = domain
 }
 
 /**
@@ -297,6 +313,7 @@ async function handleSend(message) {
         // ★ 中断检测回调
         onInterrupt: (data) => {
           console.log('[App] 检测到中断:', data.interrupt_type)
+          if (data.domain) selectedDomain.value = data.domain
           // 兜底：将所有 calling 状态的工具标记为 done
           for (const m of messages.value) {
             if (m.role === 'tool' && m.tool_status === 'calling') {
@@ -314,6 +331,7 @@ async function handleSend(message) {
 
         // 流结束时的回调
         onDone: (data) => {
+          if (data.domain) selectedDomain.value = data.domain
           // 确保所有工具调用都标记为完成
           for (const m of messages.value) {
             if (m.role === 'tool' && m.tool_status === 'calling') {
@@ -356,7 +374,8 @@ async function handleSend(message) {
           }
         }
       },
-      abortController.signal
+      abortController.signal,
+      selectedDomain.value
     )
   } catch (error) {
     if (error.name === 'AbortError') {
@@ -461,6 +480,7 @@ async function handleResume(resumeData) {
         // ★ 恢复后仍可能再次中断（如：先数据补充 → 再 HITL 审批）
         onInterrupt: (data) => {
           console.log('[App] 恢复后再次中断:', data.interrupt_type)
+          if (data.domain) selectedDomain.value = data.domain
           for (const m of messages.value) {
             if (m.role === 'tool' && m.tool_status === 'calling') {
               m.tool_status = 'done'
@@ -474,6 +494,7 @@ async function handleResume(resumeData) {
         },
 
         onDone: (data) => {
+          if (data.domain) selectedDomain.value = data.domain
           for (const m of messages.value) {
             if (m.role === 'tool' && m.tool_status === 'calling') {
               m.tool_status = 'done'
@@ -529,20 +550,25 @@ async function handleResume(resumeData) {
 .app-container {
   display: flex;
   height: 100vh;
-  background: #f8fafc;
+  background: #f5f4ee;
   position: relative;
   overflow: hidden;
 }
 
 .main-content {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   width: 100%;
-  background: #ffffff;
+  background: #f5f4ee;
   position: relative;
-  border-left: 1px solid #e2e8f0;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+  border-left: 1px solid rgba(34, 48, 37, 0.09);
+}
+
+@media (max-width: 560px) {
+  .app-container { flex-direction: column; }
+  .main-content { min-height: 0; border-left: 0; }
 }
 </style>

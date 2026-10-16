@@ -13,22 +13,26 @@ MCP 工具客户端。
 from typing import List, Tuple
 
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from agent.agents.car_agent.tools import (
+    CAR_ANALYST_TOOL_PREFIXES,
+    CAR_ORDER_TOOL_PREFIXES,
+)
+from agent.tools.analysis_mcp_client import (
+    ANALYSIS_MCP_SERVER_CONFIG,
+)
 
 # MCP Server 连接配置
 MCP_SERVER_CONFIG = {
-    "erp-api": {
+    "car-procurement": {
         "url": "http://127.0.0.1:8000/mcp",
         "transport": "streamable_http",
     },
-    "analysis": {
-        "url": "https://mcp.api-inference.modelscope.net/934b733c19fd43/mcp",
-        "transport": "streamable_http",
-    },
+    **ANALYSIS_MCP_SERVER_CONFIG,
 }
 
 # 工具分组规则（前缀匹配）
-ANALYST_TOOL_PREFIXES = ("supplier_", "part_", "inventory_")
-ORDER_TOOL_PREFIXES = ("order_",)
+ANALYST_TOOL_PREFIXES = CAR_ANALYST_TOOL_PREFIXES
+ORDER_TOOL_PREFIXES = CAR_ORDER_TOOL_PREFIXES
 CHART_TOOL_PREFIXES = ("generate_",)  # 魔塔社区 MCP 可视化+工具（26 图表/地图/图表 + 1 spreadsheet）
 
 
@@ -44,8 +48,8 @@ async def load_mcp_tools(
     Returns:
         (all_tools, analyst_tools, order_tools, chart_tools) 四元组
         - all_tools: 全部 MCP 工具列表（ERP + 图表）
-        - analyst_tools: 供应商查询 + 零部件查询 + 库存预警工具
-        - order_tools: 订单创建 + 订单更新 + 订单搜索工具
+        - analyst_tools: 汽车零部件、车型适配、价格、供应商与库存查询工具
+        - order_tools: 汽车采购订单创建、更新与查询工具
         - chart_tools: 图表/地图/可视化生成工具（来自魔塔社区 MCP Server，27 种）
     """
     if server_config is None:
@@ -54,9 +58,9 @@ async def load_mcp_tools(
     print("[INFO] 正在连接 MCP Server...")
     mcp_client = MultiServerMCPClient(server_config)
 
-    # 从 ERP MCP Server 获取业务工具
-    erp_tools = await mcp_client.get_tools(server_name="erp-api")
-    print(f"[INFO] 已从 ERP MCP Server 加载 {len(erp_tools)} 个工具")
+    # 从汽车 ERP MCP Server 获取汽车领域业务工具
+    erp_tools = await mcp_client.get_tools(server_name="car-procurement")
+    print(f"[INFO] 已从汽车 ERP MCP Server 加载 {len(erp_tools)} 个工具")
 
     # 从魔塔社区 MCP Server 获取图表工具
     analysis_tools = await mcp_client.get_tools(server_name="analysis")

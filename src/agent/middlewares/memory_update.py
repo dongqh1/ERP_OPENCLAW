@@ -29,6 +29,8 @@ _TRIGGER_KEYWORDS = [
     "供应商", "物料", "采购", "订单", "价格", "分析", "对比",
     "比价", "报价", "评估", "筛选", "推荐", "行情", "预算",
     "库存", "交货", "交期", "质量", "成本", "报价", "招标",
+    "电脑", "装机", "配置", "显卡", "硬件", "显存", "处理器",
+    "内存", "游戏", "GPU", "CPU", "LoRA", "RTX", "Radeon",
     "supplier", "part", "order", "price", "analysis",
 ]
 
@@ -120,8 +122,8 @@ async def _extract_entities(
     prompt = f"""Extract procurement-related entities from this conversation.
 
 Rules:
-1. "suppliers": Company/supplier names mentioned. Include both Chinese and English names. Empty list if none.
-2. "query": One-line summary of the user's procurement need. Empty string if not procurement-related.
+1. "suppliers": Supplier or hardware brand names mentioned. Include both Chinese and English names. Empty list if none.
+2. "query": One-line summary of the user's procurement or PC configuration need. Empty string if not related.
 
 User message: {user_message}
 

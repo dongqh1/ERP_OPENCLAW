@@ -153,7 +153,6 @@ websockets==16.0
 win32_setctime==1.2.0
 xxhash==3.6.0
 yarl==1.23.0
-zai==0.0.2
 zai-sdk==0.2.2
 zipp==3.23.0
 zstandard==0.25.0

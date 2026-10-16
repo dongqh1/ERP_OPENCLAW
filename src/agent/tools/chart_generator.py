@@ -65,7 +65,7 @@ CHART_TYPE_GUIDE: Dict[str, str] = {
 
 # ---- 紧凑速查表：chart_type → 数据模式 + 特殊参数（用于工具描述，~800 tokens） ----
 
-_COMPACT_TABLE = """
+_COMPACT_TABLE = r"""
 ## Chart Type Quick Reference
 
 **通用可选参数（几乎所有图表）:** `width`(默认600), `height`(默认400), `title`, `theme`("default"|"academy"|"dark"), `style`({backgroundColor, palette, texture})
@@ -261,7 +261,9 @@ def build_chart_params_md(tool_map: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _build_tool_description(tool_map: Dict[str, Any]) -> str:
+def _build_tool_description(
+    tool_map: Dict[str, Any], params_path: str
+) -> str:
     """生成 generate_visualization 的工具描述（紧凑速查表 + 参考文件提示）。"""
     chart_list = ", ".join(sorted(tool_map.keys()))
     return (
@@ -273,11 +275,15 @@ def _build_tool_description(tool_map: Dict[str, Any]) -> str:
         + _COMPACT_TABLE +
         "\n\n"
         "When unsure about the exact fields for chart_config, read "
-        "`/skills/procurement/chart_params.md` first, then call this tool."
+        f"`{params_path}` first, then call this tool."
     )
 
 
-def create_generate_chart_tool(chart_mcp_tools: list):
+def create_generate_chart_tool(
+    chart_mcp_tools: list,
+    *,
+    params_path: str = "/skills/procurement/chart_params.md",
+):
     """
     工厂函数：将 26 个可视化 MCP 工具合并为 1 个 generate_visualization 入口。
 
@@ -319,7 +325,7 @@ def create_generate_chart_tool(chart_mcp_tools: list):
             other_tools.append(t)
 
     # 动态生成工具描述（紧凑速查表）
-    tool_description = _build_tool_description(tool_map)
+    tool_description = _build_tool_description(tool_map, params_path)
 
     @tool
     async def generate_visualization(chart_type: str, chart_config: dict) -> str:

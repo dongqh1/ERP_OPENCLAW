@@ -1,34 +1,33 @@
 /**
  * 全局样式文件
  *
- * 定义现代化科技风格的样式 - 参考大厂设计
+ * 采衡界面基础样式：纸感底色、松木绿与暖铜色
  */
 
 /* ============================================================
-   CSS 变量定义 - 浅色主题配色方案
+   CSS 变量定义 - 采衡配色方案
    ============================================================ */
 :root {
-  /* 颜色变量 - 参考 ChatGPT/DeepSeek 风格 */
-  --color-primary: #0ea5e9;
-  --color-primary-hover: #0284c7;
-  --color-secondary: #6366f1;
-  --color-accent: #8b5cf6;
-  --color-bg: #ffffff;
-  --color-bg-secondary: #f8fafc;
-  --color-bg-tertiary: #f1f5f9;
-  --color-bg-hover: #e2e8f0;
-  --color-white: #ffffff;
-  --color-border: #e2e8f0;
-  --color-border-light: #f1f5f9;
-  --color-text: #1e293b;
-  --color-text-secondary: #64748b;
-  --color-text-muted: #94a3b8;
+  --color-primary: #465a40;
+  --color-primary-hover: #354a35;
+  --color-secondary: #78875c;
+  --color-accent: #a16e48;
+  --color-bg: #f5f4ee;
+  --color-bg-secondary: #fffef9;
+  --color-bg-tertiary: #eeede4;
+  --color-bg-hover: #e6e7dc;
+  --color-white: #fffef9;
+  --color-border: #deded2;
+  --color-border-light: #e9e8de;
+  --color-text: #26352b;
+  --color-text-secondary: #73796d;
+  --color-text-muted: #929487;
 
   /* 阴影 - 柔和效果 */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.05);
-  --shadow-glow: 0 0 20px rgba(14, 165, 233, 0.15);
+  --shadow-sm: 0 1px 2px rgba(35, 46, 35, 0.05);
+  --shadow-md: 0 4px 12px rgba(35, 46, 35, 0.06);
+  --shadow-lg: 0 10px 25px rgba(35, 46, 35, 0.08);
+  --shadow-glow: 0 0 20px rgba(120, 135, 92, 0.13);
 
   /* 圆角 - 柔和圆润 */
   --radius-sm: 8px;
@@ -66,6 +65,8 @@ body {
   line-height: 1.6;
 }
 
+::selection { color: #17251e; background: #d4dfb6; }
+
 /* ============================================================
    滚动条样式 - 现代风格
    ============================================================ */
@@ -79,12 +80,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #c9c9ba;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #a9ad9d;
 }
 
 /* ============================================================
@@ -143,7 +144,7 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  background: var(--color-primary);
   color: white;
   box-shadow: var(--shadow-md);
 }

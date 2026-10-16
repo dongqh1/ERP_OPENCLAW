@@ -21,9 +21,14 @@ from agent.config import LOCAL_SKILLS_DIR, SANDBOX_SKILLS_ROOT
 class SkillsSyncMiddleware(AgentMiddleware):
     """技能文件同步中间件，依赖沙箱后端的文件操作能力。"""
 
-    def __init__(self, backend: BaseSandbox) -> None:
+    def __init__(
+        self,
+        backend: BaseSandbox,
+        allowed_scopes: Optional[set[str]] = None,
+    ) -> None:
         super().__init__()
         self.backend = backend
+        self.allowed_scopes = frozenset(allowed_scopes) if allowed_scopes else None
         # 缓存本地文件哈希，避免重复同步
         self._last_hashes: Dict[str, str] = {}
 
@@ -59,6 +64,8 @@ class SkillsSyncMiddleware(AgentMiddleware):
             if not skill_dir.is_dir():
                 continue
             skill_name = skill_dir.name
+            if self.allowed_scopes is not None and skill_name not in self.allowed_scopes:
+                continue
             sandbox_skill_dir = f"{SANDBOX_SKILLS_ROOT}/{skill_name}"
 
             files_to_upload: List[Tuple[str, bytes]] = []

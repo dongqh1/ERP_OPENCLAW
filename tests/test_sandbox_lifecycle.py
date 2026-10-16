@@ -12,7 +12,9 @@ from opensandbox.exceptions import SandboxApiException, SandboxInternalException
 def lifecycle(monkeypatch, tmp_path):
     module = importlib.import_module("agent.backends.sandbox_lifecycle")
     monkeypatch.setattr(module, "_shared_backend", None)
+    monkeypatch.setattr(module, "_pc_shared_backend", None)
     monkeypatch.setattr(module, "_sandbox_id_file", tmp_path / ".opensandbox_id")
+    monkeypatch.setattr(module, "_pc_sandbox_id_file", tmp_path / ".opensandbox_pc_id")
     return module
 
 
@@ -90,6 +92,39 @@ def test_concurrent_initialization_creates_only_one_backend(lifecycle, monkeypat
 
     assert results == [backend] * 8
     assert calls == [None]
+
+
+def test_car_and_pc_use_separate_backends_and_persisted_ids(lifecycle, monkeypatch):
+    car_backend = SimpleNamespace(id="car-sandbox")
+    pc_backend = SimpleNamespace(id="pc-sandbox")
+    calls = []
+
+    def setup(config, *, sandbox_id, image, skill_scopes=None):
+        calls.append((sandbox_id, skill_scopes))
+        return car_backend if skill_scopes == {"main", "procurement"} else pc_backend
+
+    monkeypatch.setattr(lifecycle, "_setup_sandbox", setup)
+
+    loaded_car = lifecycle.get_shared_sandbox_backend(
+        "config",
+        domain="car",
+        skill_scopes={"main", "procurement"},
+    )
+    loaded_pc = lifecycle.get_shared_sandbox_backend(
+        "config",
+        domain="pc",
+        skill_scopes={"main", "pc"},
+    )
+
+    assert loaded_car is car_backend
+    assert loaded_pc is pc_backend
+    assert loaded_car is not loaded_pc
+    assert calls == [
+        (None, {"main", "procurement"}),
+        (None, {"main", "pc"}),
+    ]
+    assert lifecycle._sandbox_id_file.read_text(encoding="utf-8") == "car-sandbox"
+    assert lifecycle._pc_sandbox_id_file.read_text(encoding="utf-8") == "pc-sandbox"
 
 
 def test_failed_initialization_does_not_write_or_cache_id(lifecycle, monkeypatch):

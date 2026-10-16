@@ -265,7 +265,12 @@ async def get_sessions(
         sessions = []
         for thread_id in all_thread_ids:
             try:
-                messages = await agent_loader.get_current_messages(thread_id)
+                # 展示消息已包含会话标题所需内容；优先直接读取，避免打开历史列表
+                # 时为每个领域初始化 MCP/Agent 连接。
+                messages = await agent_loader.get_display_messages(thread_id)
+                if messages is None:
+                    # 兼容尚未写入展示消息集合的旧会话。
+                    messages = await agent_loader.get_current_messages(thread_id)
 
                 if messages:
                     first_user_msg = next(
@@ -288,7 +293,8 @@ async def get_sessions(
                         title=title,
                         created_at=updated_at,
                         updated_at=updated_at,
-                        message_count=message_count
+                        message_count=message_count,
+                        domain=agent_loader.get_session_domain(thread_id) or "car",
                     ))
             except Exception as e:
                 print(f"[HistoryAPI] 处理会话 {thread_id} 失败: {e}")

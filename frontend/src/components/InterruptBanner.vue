@@ -240,13 +240,13 @@ const bannerClass = {
 }
 
 .banner-supplement {
-  border: 2px solid #f59e0b;
-  background: #fffbeb;
+  border: 1px solid #c5a16d;
+  background: #fbf7ee;
 }
 
 .banner-approval {
-  border: 2px solid #ef4444;
-  background: #fef2f2;
+  border: 1px solid #ba816d;
+  background: #faf2ee;
 }
 
 /* 头部 */
@@ -288,9 +288,9 @@ const bannerClass = {
 
 .missing-fields .info-value {
   font-size: 15px;
-  color: #b45309;
+  color: #896236;
   font-weight: 600;
-  background: #fef3c7;
+  background: #f2e9d6;
   padding: 8px 14px;
   border-radius: 8px;
 }
@@ -344,7 +344,7 @@ const bannerClass = {
 /* 操作卡片 */
 .action-card {
   background: #ffffff;
-  border: 1px solid #fecaca;
+  border: 1px solid #e8d2c7;
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
@@ -357,8 +357,8 @@ const bannerClass = {
 .action-type {
   font-size: 15px;
   font-weight: 700;
-  color: #b91c1c;
-  background: #fef2f2;
+  color: #925b48;
+  background: #f7e9e2;
   padding: 4px 14px;
   border-radius: 6px;
 }
@@ -402,12 +402,12 @@ const bannerClass = {
 }
 
 .detail-table th {
-  background: #fef2f2;
+  background: #f7e9e2;
   padding: 8px 10px;
   text-align: left;
   font-weight: 600;
-  color: #b91c1c;
-  border-bottom: 1px solid #fecaca;
+  color: #925b48;
+  border-bottom: 1px solid #e8d2c7;
 }
 
 .detail-table td {
@@ -433,19 +433,19 @@ const bannerClass = {
 
 .supplement-btn {
   flex-shrink: 0;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background: #9a7045;
   color: #fff;
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
 .approve-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: #526847;
   color: #fff;
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .reject-btn {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: #a35f4e;
   color: #fff;
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }

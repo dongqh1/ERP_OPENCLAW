@@ -20,7 +20,12 @@ from langchain.agents.middleware import AgentMiddleware
 class UserSkillsRestoreMiddleware(AgentMiddleware):
     """从 StoreBackend 恢复持久化技能到沙箱的中间件。"""
 
-    def __init__(self, backend, skills_namespace) -> None:
+    def __init__(
+        self,
+        backend,
+        skills_namespace,
+        allowed_scopes: Optional[set[str]] = None,
+    ) -> None:
         """
         Args:
             backend: OpenSandboxBackend 实例，负责文件上传。
@@ -29,6 +34,7 @@ class UserSkillsRestoreMiddleware(AgentMiddleware):
         super().__init__()
         self.backend = backend
         self.namespace = skills_namespace
+        self.allowed_scopes = frozenset(allowed_scopes) if allowed_scopes else None
 
     async def abefore_agent(
         self, state: Dict[str, Any], runtime: Any
@@ -73,6 +79,8 @@ class UserSkillsRestoreMiddleware(AgentMiddleware):
             if len(parts) != 2:
                 continue
             scope, rest = parts
+            if self.allowed_scopes is not None and scope not in self.allowed_scopes:
+                continue
             sandbox_path = f"/skills/{scope}/{rest}"
 
             content = item.value

@@ -18,7 +18,7 @@ description: >
 
 # 工具列表
 tools:
-  - part_search              # 按名称查询 ERP 物料，核验设备型号和 partId
+  - part_search              # 按名称查询 ERP 汽车/摩托车零件并核验 partId
   - part_by_supplier         # 按供应商 ID 查询 ERP 物料，交叉核验归属
   - order_create             # 新增采购订单 → POST /orders/create
   - order_update             # 更新采购订单 → PUT /orders/update/{order_id}
@@ -94,7 +94,6 @@ system_prompt: |
   ### 第一步：提取已有数据
   从任务描述和对话上下文中提取所有已知的订单信息（物料ID、数量、单价、供应商、交货日期、备注等）。
   如果订单来自项目采购方案，保留项目名称、预算约束和已确认的交期；将项目名称及方案来源写入 remark，expectedDeliveryDate 使用用户确认的日期。
-  如果订单来自企业 IT 设备采购方案，先用 `part_search(name=设备型号或物料名)` 查询 ERP 记录，必要时用 `part_by_supplier(supplier_id=供应商ID)` 交叉核对。将返回的 ERP 记录 ID、名称/型号、供应商与所选报价逐项对照，只有确切匹配才将报价的 `part_id` 对应 `partId`；用户自行提供的 ID 不等于已核验。若没有确切匹配的 ERP 记录或返回数据不足以核验，停止下单并告知需要目录核验，不得调用 `order_create`/`order_update`。核对设备型号、关键配置、数量、单价和报价来源后，将型号、配置与来源写入明细 `remark` 或订单 `remark`，`expectedDeliveryDate` 使用用户确认且与所选方案一致的日期。不得用未核实的零部件或待核实方案下单。
 
   ### 第二步：Schema 校验
   对照 order_create / order_update 的参数 Schema 检查完整性：
@@ -102,11 +101,9 @@ system_prompt: |
   - **供应商信息**: 供应商名称或 ID 是否已明确？
   - **建议提供的字段**: `expectedDeliveryDate`（预计交货日期）、`remark`（备注）
   - **修改操作**: `order_id` 是否已明确？
-  - **IT 设备订单**: 是否通过 `part_search` 查到确切匹配的 ERP 记录并核验 `part_id`、型号和供应商？设备配置、报价来源、用户确认的交期是否齐全且与方案一致？
 
   ### 第三步：循环补充缺失数据
   如有任何必填字段缺失或关键信息不明确 → 调用 `request_order_info(missing_fields="...", collected_data="...")`。
-  IT 设备的 ERP `part_id`、报价来源或交期未核实时，也先补齐或重新核验；不能由模型推断。用户补充后仍需再次查询 ERP 核验物料；查询不到匹配记录就停止下单，不能把用户提供的 ID 当成核验结果。
 
   **工具会暂停执行**，在终端展示缺失字段，等待人工输入补充信息。
 

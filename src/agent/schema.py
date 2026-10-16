@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 
 from pydantic import Field, BaseModel
 
@@ -50,6 +50,10 @@ class ChatRequest(BaseModel):
     """对话请求模型"""
     message: str = Field(..., description="用户消息")
     thread_id: Optional[str] = Field(None, description="会话 ID，为空则创建新会话")
+    domain: Optional[Literal["car", "pc"]] = Field(
+        None,
+        description="采购领域：car 汽车零部件，pc 电脑配置；旧客户端可不传",
+    )
 
 
 class Message(BaseModel):
@@ -86,6 +90,7 @@ class Session(BaseModel):
     created_at: datetime = Field(..., description="创建时间")
     updated_at: datetime = Field(..., description="最后更新时间")
     message_count: int = Field(0, description="消息数量")
+    domain: Literal["car", "pc"] = Field("car", description="会话所属采购领域")
 
 
 class SessionListResponse(BaseModel):

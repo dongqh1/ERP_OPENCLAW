@@ -45,6 +45,7 @@ from agent.config import (
     SUMMARY_MODEL,
 )
 from agent.memory.prompts import system_prompt
+from agent.agents.car_agent import load_prompt as load_car_domain_prompt
 from agent.middleware_config import (
     create_analyst_middleware,
     create_order_middleware,
@@ -62,7 +63,6 @@ from agent.tools.assign_skill import create_assign_skill_tool
 from agent.tools.download_sandbox_file import create_download_tool
 from agent.tools.mcp_client import load_mcp_tools
 from agent.tools.project_procurement import evaluate_project_procurement
-from agent.tools.it_equipment_procurement import evaluate_it_equipment_procurement
 from agent.tools.web_search import web_search
 
 def _setup_logging() -> None:
@@ -112,7 +112,12 @@ async def create_main_agent(
     # ---- Phase 1: 获取项目共享沙箱 ----
     logger.info("Phase 1/10: 获取项目共享沙箱...")
     try:
-        sandbox_backend = get_shared_sandbox_backend(SANDBOX_CONFIG, sandbox_id=sandbox_id)
+        sandbox_backend = get_shared_sandbox_backend(
+            SANDBOX_CONFIG,
+            sandbox_id=sandbox_id,
+            domain="car",
+            skill_scopes={"main", "procurement", "order"},
+        )
     except Exception:
         logger.exception("沙箱配置失败")
         raise RuntimeError("沙箱配置失败，无法创建 Agent")
@@ -179,7 +184,6 @@ async def create_main_agent(
         + [web_search]
         + [request_order_info]
         + [evaluate_project_procurement]
-        + [evaluate_it_equipment_procurement]
         + [assign_skill]
         + [download_sandbox_file]
     )
@@ -213,8 +217,15 @@ async def create_main_agent(
     logger.info("Phase 8/10: 构建主 Agent 中间件栈...")
     main_middleware = [
         ContextInjectionMiddleware(),
-        SkillsSyncMiddleware(sandbox_backend),
-        UserSkillsRestoreMiddleware(sandbox_backend, SKILLS_STORE_NAMESPACE),
+        SkillsSyncMiddleware(
+            sandbox_backend,
+            allowed_scopes={"main", "procurement", "order"},
+        ),
+        UserSkillsRestoreMiddleware(
+            sandbox_backend,
+            SKILLS_STORE_NAMESPACE,
+            allowed_scopes={"main", "procurement", "order"},
+        ),
         build_summarization_middleware(backend, SUMMARY_MODEL),
         MemoryUpdateMiddleware(model=SUMMARY_MODEL),
         ModelCallLimitMiddleware(run_limit=50),
@@ -225,7 +236,7 @@ async def create_main_agent(
     logger.info("Phase 9/10: 创建 Deep Agent...")
     agent_graph = create_deep_agent(
         model=MAIN_MODEL,
-        system_prompt=system_prompt,
+        system_prompt=f"{system_prompt}\n\n{load_car_domain_prompt()}",
         skills=["/skills/main/"],
         memory=[AGENTS_MD_FILENAME],
         tools=[web_search, assign_skill, download_sandbox_file],
@@ -239,6 +250,15 @@ async def create_main_agent(
 
     logger.info("=== ERP 采购智能助手创建完成 ===")
     return agent_graph
+
+
+async def create_car_agent(
+    config: Optional[RunnableConfig] = None,
+    *,
+    sandbox_id: Optional[str] = None,
+):
+    """创建汽车领域 Agent；复用现有 DeepAgents/LangGraph 流程。"""
+    return await create_main_agent(config, sandbox_id=sandbox_id)
 
 
 # agent = asyncio.run(create_main_agent(sandbox_id='8b5d68e6-b6f4-4bde-823d-1fb510881581'))

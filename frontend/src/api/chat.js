@@ -25,7 +25,7 @@ const API_BASE = '/api/chat'
  * @param {AbortSignal} signal - 可选的 AbortSignal，用于取消请求
  * @returns {Promise} 返回包含 thread_id, content, tool_calls 的结果
  */
-export async function streamChat(message, threadId = null, callbacks = {}, signal = null) {
+export async function streamChat(message, threadId = null, callbacks = {}, signal = null, domain = null) {
   // 用于收集完整内容
   let fullContent = ''
   let toolCalls = []
@@ -41,7 +41,8 @@ export async function streamChat(message, threadId = null, callbacks = {}, signa
       },
       body: JSON.stringify({
         message: message,
-        thread_id: threadId
+        thread_id: threadId,
+        domain: domain
       }),
       signal: signal  // 支持取消请求
     })
@@ -222,6 +223,7 @@ async function _processStream(response, threadId, callbacks, fullContent, toolCa
               content: fullContent,
               tool_calls: toolCalls,
               interrupted: true,
+              domain: data.domain,
               interrupt_data: data
             }
 
@@ -231,7 +233,8 @@ async function _processStream(response, threadId, callbacks, fullContent, toolCa
               thread_id: data.thread_id,
               content: data.content || fullContent,
               tool_calls: toolCalls,
-              interrupted: data.interrupted || false
+              interrupted: data.interrupted || false,
+              domain: data.domain
             }
             callbacks.onDone?.(result)
             return result

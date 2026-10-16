@@ -10,7 +10,7 @@ description: >
 ## 适用场景
 - 供应商比价分析（多供应商、同物料价格对比）
 - 研发项目采购决策（结合项目可用预算、采购数量和要求到货日期筛选方案）
-- 企业 IT 设备采购决策（电脑、服务器、网络/办公设备的配置、预算、交期和保修校验）
+- 汽车/摩托车零部件采购方案（车型适配、预算、库存和供应商信息核验）
 - 物料行情评估（价格趋势、供需分析）
 - 供应商综合评分（按信用评级、价格、交期加权打分）
 - 采购策略建议（分阶段采购、集中采购、备选供应商推荐）
@@ -31,16 +31,10 @@ description: >
 - `order_search_details(partName="xxx")` → 历史订单价格
 - `inventory_warning()` → 库存预警
 
-**2b. 外部数据（研发物料比价时不可跳过）**
-1. 激活 `/skills/procurement/supplier-price-urls/`，读取 `data/url_mapping.yaml`
-2. 按零部件名 + 供应商名查找对应报价 URL
-3. **找到 URL** → 使用 `web-scraper` 直接抓取：
-   ```bash
-   execute("python /skills/procurement/web-scraper/scrape_page.py --url '<报价URL>'")
-   ```
-   脚本将 HTML 转为 Markdown 保存到 `/analysis/temp/{filename}.md`，再 `read_file` 读取内容提取价格/型号/品牌/材质/单位。
-4. **未找到 URL** → 使用 `web_search` 搜索市场价格和规格参数
-5. 无论哪种路径，最终都要有外部参考数据用于对比
+**2b. 数据边界**
+- 当前平台只用本地汽车/摩托车模拟 ERP 数据，不抓取网站、不查询真实汽车零件数据库，也不把模拟价格描述为市场报价。
+- 汽车采购分析不要调用外部网页搜索或爬虫补充价格、库存、供应商和交期。
+- 用户询问通用知识时可按主 Agent 规则使用 `web_search`，但搜索结果不得混入模拟 ERP 业务数据。
 
 ### 第 3 步：执行分析
 1. 编写 Python 分析脚本，使用 `execute` 工具运行
@@ -54,14 +48,12 @@ description: >
 
 ### 项目采购约束校验
 当用户给出项目预算、采购数量和到货期限时，先按已有分析流程查询物料、供应商和历史订单；每条候选报价必须保留 ERP 记录、供应商报价页或用户确认的来源。
-对同一物料或规格已核实等效的候选方案调用 `evaluate_project_procurement`，参数包括 `project_name`、`requirement`、`quantity`、`budget_remaining`、`deadline` 和 `offers`。每个 offer 至少包含 `supplier_name`、`part_id`、`part_name`、`unit_price`、`source`；交付日期未知时将 `delivery_date` 留空。
+对同一物料或规格已核实等效的候选方案调用 `evaluate_project_procurement`，参数包括 `project_name`、`requirement`、`quantity`、`budget_remaining`、`deadline` 和 `offers`。每个 offer 至少包含 `supplier_name`、`part_id`、`part_name`、`unit_price`、`source`；来源使用本地模拟 ERP 记录或用户提供的资料，交付日期未知时将 `delivery_date` 留空。
 只把同时满足预算、且有已核实交期并满足期限的方案表述为“可执行推荐”。交期缺失时明确标为待核实；不得用模型估计值填入工具输入。不要把 ERP 当前库存解释为供应商可供数量。
 此工具只生成方案，不创建订单。用户确认下单后交由订单子 Agent，订单仍需经过人工审批。
 
-### 企业 IT 设备采购约束校验
-先确认 `device_type`、`requirement`、`quantity`、`budget_remaining`、`deadline`、`minimum_warranty_months`、`min_cpu_cores`、`min_memory_gb`、`min_storage_gb` 和 `allowed_operating_systems`。ERP 查询用于核实供应商、物料 ID 和历史记录；现有零部件目录不等于 IT 设备目录，设备身份及规格必须另行核实。
-供应商报价或用户提供的信息可作为候选来源，每条 offer 分别填写 `supplier_name`、`supplier_id`、`part_id`、`device_type`、`model_name`、`unit_price`、`delivery_date`、`warranty_months`、`cpu_cores`、`memory_gb`、`storage_gb`、`operating_system`、`source`。来源需指向具体 ERP 记录、报价页或用户确认内容。未核实字段传空值或缺省，不得补造目录、型号、价格、库存、交期、保修及参数。
-调用 `evaluate_it_equipment_procurement` 校验各方案；它不查询 ERP，也不创建订单。报告中分别列明 `eligible`、`needs_confirmation` 和 `ineligible` 及原因，只推荐满足全部硬约束且证据齐全的 `eligible` 方案。用户确认下单后，将已核验的 ERP `part_id`、型号、配置、报价来源和交期交给订单子 Agent；继续通过 `request_order_info` 补缺与 `order_create`/`order_update` 人工 approve/reject 审批。
+### PC 电脑配置采购
+PC 配置由独立 PC Agent 通过 PC MCP 和 Java 模拟硬件服务处理。本技能只服务汽车/摩托车零部件 Agent；遇到 PC 配置请求时由 FastAPI Router 选择 PC Agent，不调用汽车 ERP 工具，也不使用本技能中的零件流程。
 
 ### 第 4 步：生成图表
 1. **首次调用图表前**：`read_file("/skills/procurement/chart_params.md")` 获取 26 种图表参数速查（紧凑格式，仅 data 格式 + 特有参数，通用参数已提取到顶部表格，不逐图重复）
@@ -136,7 +128,7 @@ description: >
 
 ## 关键原则
 - **技能发现**：每次任务开始先 `ls /skills/procurement/` 扫描可用技能，不依赖静态列表
-- **数据真实**：所有结论基于真实数据，不编造
+- **数据边界**：所有汽车业务结论来自本地模拟 ERP，明确标注模拟数据，不声称是实时市场报价
 - **精简输出**：报告不超过 500 字摘要 + 3-5 条结论
 - **成本意识**：先获取必要数据，避免无限循环查询
 

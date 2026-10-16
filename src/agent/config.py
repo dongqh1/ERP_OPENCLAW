@@ -103,6 +103,9 @@ SCOPE_MAP = {
     "main": "main",
     "procurement-analyst": "procurement",
     "procurement-order": "order",
+    "pc": "pc",
+    "pc-hardware-analyst": "pc",
+    "pc-build-planner": "pc",
 }
 
 # ---------- 中间件参数 ----------
@@ -111,6 +114,7 @@ SCOPE_MAP = {
 MONGODB_URI = os.getenv("MONGODB_URI")
 MONGODB_DB_NAME = "langchain_db"
 MONGODB_CHECKPOINT_COLLECTION = "checkpoints"
+MONGODB_PC_PREFERENCES_COLLECTION = "pc_user_preferences"
 
 # ---------- 持久化存储 ----------
 # InMemoryStore: 开发阶段使用。生产环境替换为持久 Store。
@@ -118,9 +122,9 @@ STORE = InMemoryStore()
 
 # MongoDBSaver: Agent 对话状态的 MongoDB 持久化 checkpointer。
 # 支持 Human-in-the-Loop（interrupt 状态持久化）和跨重启对话恢复。
-_mongodb_client = MongoClient(MONGODB_URI)
+MONGODB_CLIENT = MongoClient(MONGODB_URI)
 CHECKPOINTER = MongoDBSaver(
-    client=_mongodb_client,
+    client=MONGODB_CLIENT,
     db_name=MONGODB_DB_NAME,
     checkpoint_collection_name=MONGODB_CHECKPOINT_COLLECTION,
 )

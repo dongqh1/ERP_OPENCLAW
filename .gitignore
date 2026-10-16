@@ -22,6 +22,8 @@ htmlcov/
 *.local
 .opensandbox_id
 .opensandbox_id.*.tmp
+.opensandbox_pc_id
+.opensandbox_pc_id.*.tmp
 
 # --- Node / frontend ---
 node_modules/

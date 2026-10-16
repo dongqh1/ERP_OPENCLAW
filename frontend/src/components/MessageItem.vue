@@ -9,7 +9,7 @@
       </div>
     </div>
     <div class="message-avatar">
-      <div class="avatar user-avatar">👤</div>
+      <div class="avatar user-avatar">我</div>
     </div>
   </div>
 
@@ -48,7 +48,7 @@
     <div class="message-content-wrapper">
       <!-- Tool 标签栏 -->
       <div class="msg-label-bar tool-label-bar">
-        <span class="msg-role-badge tool-role-badge">Tool</span>
+        <span class="msg-role-badge tool-role-badge">业务工具</span>
         <span class="msg-tool-name-badge">{{ formatToolName(message.tool_name) }}</span>
         <span v-if="message.source && message.source !== 'main'" class="msg-source-badge tool-source-badge">
           {{ getSourceName(message.source) }}
@@ -135,18 +135,18 @@ function previewImage(src) { window.open(src, '_blank') }
 
 /** AI 消息的角色标签文字 */
 function getRoleLabel(source) {
-  if (!source || source === 'main') return 'AI'
+  if (!source || source === 'main') return '采衡助手'
   return getSourceName(source)  // 如「图表代理」
 }
 
 /** AI 消息的头像 emoji */
 function getRoleIcon(source) {
-  if (!source || source === 'main') return '🤖'
+  if (!source || source === 'main') return '衡'
   const name = (source || '').toLowerCase()
-  if (name.includes('chart')) return '📊'
-  if (name.includes('research')) return '📚'
-  if (name.includes('model')) return '🧠'
-  return '🤖'
+  if (name.includes('chart')) return '图'
+  if (name.includes('research')) return '研'
+  if (name.includes('model')) return '模'
+  return '助'
 }
 
 /** AI 消息标签栏的 CSS class */
@@ -169,6 +169,7 @@ function formatToolName(name) {
   if (!name) return '未知工具'
   const nameMap = {
     'task': '委派子代理 (task)',
+    'generate_visualization': '生成图表',
     'generate_column_chart': '生成柱状图',
     'generate_bar_chart': '生成柱状图',
     'generate_line_chart': '生成折线图',
@@ -176,6 +177,12 @@ function formatToolName(name) {
     'generate_area_chart': '生成面积图',
     'generate_scatter_chart': '生成散点图',
     'web_search': '网络搜索',
+    'hardware_query': '查询硬件目录',
+    'hardware_detail': '查询硬件详情',
+    'hardware_compare': '比较硬件参数',
+    'pc_budget_optimizer': '生成预算配置',
+    'pc_compatibility_check': '检查配置兼容性',
+    'pc_term_lookup': '查询 PC 术语',
     'read_file': '读取文件',
     'write_file': '写入文件',
     'execute_python': '执行 Python 代码',
@@ -234,7 +241,7 @@ function cleanText(text) {
 }
 
 .message-item.streaming {
-  background: linear-gradient(to right, transparent, rgba(14, 165, 233, 0.03), transparent);
+  background: linear-gradient(to right, transparent, rgba(120, 135, 92, 0.045), transparent);
 }
 
 /* ============================================================ */
@@ -262,20 +269,20 @@ function cleanText(text) {
 
 /* 主 Agent AI 标签 */
 .label-bar-main .msg-role-badge {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: #e7ecdc;
+  color: #526344;
 }
 
 /* 子 Agent AI 标签 */
 .label-bar-sub .msg-role-badge {
-  background: #ede9fe;
-  color: #7c3aed;
+  background: #f0e7da;
+  color: #926742;
 }
 
 /* Tool 标签 */
 .tool-label-bar .tool-role-badge {
-  background: #fef3c7;
-  color: #b45309;
+  background: #f2ebd9;
+  color: #8e6c36;
 }
 
 .msg-source-badge {
@@ -288,13 +295,13 @@ function cleanText(text) {
 }
 
 .label-bar-sub .msg-source-badge {
-  background: #ddd6fe;
-  color: #6d28d9;
+  background: #f4eee5;
+  color: #8d7155;
 }
 
 .tool-source-badge {
-  background: #fef9c3;
-  color: #a16207;
+  background: #f4f0e4;
+  color: #8e784d;
 }
 
 .msg-tool-name-badge {
@@ -304,8 +311,8 @@ function cleanText(text) {
   border-radius: 6px;
   font-size: 13px;
   font-weight: 700;
-  color: #92400e;
-  background: #fef9c3;
+  color: #80623b;
+  background: #f4f0e4;
   font-family: 'Monaco', 'Menlo', 'JetBrains Mono', monospace;
 }
 
@@ -318,14 +325,14 @@ function cleanText(text) {
 }
 
 .tool-status-badge.calling {
-  background: #fef3c7;
-  color: #b45309;
+  background: #f2ebd9;
+  color: #8e6c36;
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 .tool-status-badge.done {
-  background: #d1fae5;
-  color: #065f46;
+  background: #e5ecdc;
+  color: #526344;
 }
 
 /* ============================================================ */
@@ -341,10 +348,10 @@ function cleanText(text) {
 }
 
 .message-user .message-content {
-  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
-  border-radius: 18px 18px 6px 18px;
-  padding: 14px 18px;
-  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.2);
+  background: #465a40;
+  border-radius: 16px 16px 5px 16px;
+  padding: 13px 17px;
+  box-shadow: 0 3px 10px rgba(45, 64, 44, 0.13);
 }
 
 .message-user .content-text {
@@ -355,7 +362,7 @@ function cleanText(text) {
   word-break: break-word;
 }
 
-.message-user .avatar { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+.message-user .avatar { color: #43513c; background: #d9e0c5; }
 
 /* ============================================================ */
 /* AI 助手消息（左侧） */
@@ -368,16 +375,16 @@ function cleanText(text) {
 }
 
 .message-assistant .message-content {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #fffef9;
+  border: 1px solid #e5e3d9;
   border-radius: 6px 14px 14px 14px;
   padding: 14px 18px;
   line-height: 1.7;
   overflow: hidden;
 }
 
-.avatar-main { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); }
-.avatar-sub { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
+.avatar-main { color: #e7eadc; background: #465a40; }
+.avatar-sub { color: #765b3e; background: #eadfce; }
 
 /* ============================================================ */
 /* 工具调用消息（左侧） */
@@ -386,16 +393,17 @@ function cleanText(text) {
 
 .message-tool-inline .message-content-wrapper {
   max-width: 85%;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+  background: #faf6ed;
+  border: 1px solid #e5dcc7;
   border-radius: 0 14px 14px 14px;
   padding: 14px 18px;
   overflow: hidden;
 }
 
 .message-tool-inline .avatar {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  font-size: 22px !important;
+  background: #ead9bb;
+  color: #785d38;
+  font-size: 18px !important;
 }
 
 /* 工具内容区域 */
@@ -408,7 +416,7 @@ function cleanText(text) {
   cursor: pointer;
   padding: 6px 0;
   user-select: none;
-  color: #92400e;
+  color: #80623b;
   font-size: 13px;
   font-weight: 600;
 }
@@ -422,8 +430,8 @@ function cleanText(text) {
 }
 
 .tool-inline-code {
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+  background: #faf6ed;
+  border: 1px solid #e5dcc7;
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 13px;
@@ -432,7 +440,7 @@ function cleanText(text) {
   white-space: pre-wrap;
   word-break: break-all;
   margin: 4px 0 0 20px;
-  color: #78350f;
+  color: #705b3d;
   line-height: 1.6;
   max-height: 200px;
   overflow-y: auto;
@@ -441,11 +449,11 @@ function cleanText(text) {
 .tool-inline-result {
   margin: 4px 0 0 20px;
   padding: 10px 14px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: #fffef9;
+  border: 1px solid #e5e3d9;
   border-radius: 8px;
   font-size: 14px;
-  color: #1e293b;
+  color: #29352b;
   line-height: 1.6;
   overflow: hidden;
 }
@@ -462,7 +470,7 @@ function cleanText(text) {
 .tool-image-wrapper {
   display: flex;
   justify-content: center;
-  background: #ffffff;
+  background: #fffef9;
   border-radius: 10px;
   padding: 8px;
   overflow: hidden;
@@ -477,7 +485,7 @@ function cleanText(text) {
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   object-fit: contain;
-  background: #f8fafc;
+  background: #f2f1e9;
   display: block;
 }
 
@@ -498,7 +506,7 @@ function cleanText(text) {
 .waiting-dot {
   width: 8px;
   height: 8px;
-  background: #f59e0b;
+  background: #a6814c;
   border-radius: 50%;
   animation: bounce 1.4s infinite ease-in-out both;
 }
@@ -506,7 +514,7 @@ function cleanText(text) {
 .waiting-dot:nth-child(1) { animation-delay: -0.32s; }
 .waiting-dot:nth-child(2) { animation-delay: -0.16s; }
 
-.waiting-text { margin-left: 8px; font-size: 13px; color: #a16207; }
+.waiting-text { margin-left: 8px; font-size: 13px; color: #8b6d40; }
 
 /* ============================================================ */
 /* 通用样式 */
@@ -527,7 +535,7 @@ function cleanText(text) {
 .typing-cursor {
   display: inline-block;
   animation: blink 1s infinite;
-  color: #0ea5e9;
+  color: #607452;
   margin-left: 3px;
   font-weight: bold;
 }
@@ -548,5 +556,10 @@ function cleanText(text) {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-cursor, .waiting-dot, .tool-status-badge.calling { animation: none; }
+  .tool-result-image { transition: none; }
 }
 </style>

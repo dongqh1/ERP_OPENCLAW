@@ -7,6 +7,7 @@ Agent 实例通过 agent.main_agent.get_agent_async() 懒加载，
 """
 
 import sys
+import asyncio
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 import uuid
@@ -41,7 +42,7 @@ class AgentLoader:
     _mongodb_client: Optional[MongoClient] = None
     # 是否已初始化
     _initialized: bool = False
-    # Agent 实例
+    # 汽车 Agent 兼容属性；领域 Agent 按需缓存
     _agent = None
 
     def __new__(cls):
@@ -50,31 +51,32 @@ class AgentLoader:
             cls._instance = super().__new__(cls)
         return cls._instance
 
+    def __init__(self):
+        if hasattr(self, "_agents"):
+            return
+        self._agents: Dict[str, Any] = {}
+        self._agent_locks = {
+            "car": asyncio.Lock(),
+            "pc": asyncio.Lock(),
+        }
+
     async def initialize(self):
         """
-        初始化 MongoDB 客户端并懒加载 Agent 实例。
-
-        Agent 通过 main_agent.get_agent_async() 获取，
-        内部已集成 MongoDBSaver checkpointer，无需在此重复创建。
+        初始化 MongoDB 会话存储。领域 Agent 在首个请求到达时分别懒加载，
+        因而 PC 服务不依赖汽车 MCP 服务启动，反之亦然。
 
         Returns:
             Agent 实例
         """
-        if self._initialized and self._agent is not None:
-            return self._agent
+        if self._initialized and self._mongodb_client is not None:
+            return self
 
-        print("[AgentLoader] 开始初始化...")
+        print("[AgentLoader] 初始化会话元数据存储...")
 
         try:
-            # 创建 MongoDB 客户端（用于展示消息存取、会话管理等直接 DB 操作）
             self._mongodb_client = MongoClient(MONGODB_URI)
-
-            # 通过 main_agent 的懒加载方法获取 Agent（内部已集成 MongoDBSaver checkpointer）
-            from agent.main_agent import get_agent_async
-            self._agent = await get_agent_async()
-
             self._initialized = True
-            print("[AgentLoader] 初始化完成")
+            print("[AgentLoader] 会话元数据存储已就绪")
         except Exception:
             # Agent 创建失败时清理 MongoClient，防止重试时连接泄漏
             if self._mongodb_client is not None:
@@ -82,7 +84,29 @@ class AgentLoader:
                 self._mongodb_client = None
             raise
 
-        return self._agent
+        return self
+
+    async def get_agent_for_domain(self, domain: str):
+        """按采购领域懒加载并缓存独立 Agent 图。"""
+        if domain not in ("car", "pc"):
+            raise ValueError(f"不支持的采购领域：{domain}")
+        if domain in self._agents:
+            return self._agents[domain]
+        if not self._initialized:
+            await self.initialize()
+        async with self._agent_locks[domain]:
+            if domain in self._agents:
+                return self._agents[domain]
+            if domain == "car":
+                from agent.main_agent import create_car_agent
+                graph = await create_car_agent()
+                self._agent = graph
+            else:
+                from agent.agents.pc_agent.agent import create_pc_agent
+                graph = await create_pc_agent()
+            self._agents[domain] = graph
+            print(f"[AgentLoader] {domain} Agent 已加载")
+            return graph
 
     @property
     def agent(self):
@@ -96,8 +120,63 @@ class AgentLoader:
             RuntimeError: 如果 Agent 未初始化
         """
         if self._agent is None:
-            raise RuntimeError("Agent 未初始化，请先调用 initialize() 方法")
+            raise RuntimeError("汽车 Agent 尚未加载，请调用 get_agent_for_domain('car')")
         return self._agent
+
+    def get_session_domain(self, thread_id: str, default: str | None = "car") -> str | None:
+        """读取会话固定领域；旧会话按汽车领域兼容。"""
+        if self._mongodb_client is None:
+            return default
+        try:
+            row = self._mongodb_client[MONGODB_DB_NAME]["session_metadata"].find_one(
+                {"thread_id": thread_id},
+                {"domain": 1},
+            )
+            domain = row.get("domain") if row else None
+            return domain if domain in ("car", "pc") else default
+        except Exception as error:
+            print(f"[AgentLoader] 读取会话领域失败: {error}")
+            return default
+
+    def has_existing_session_data(self, thread_id: str) -> bool:
+        """判断领域元数据缺失时，会话是否已有历史数据。"""
+        if not thread_id or self._mongodb_client is None:
+            return False
+        try:
+            db = self._mongodb_client[MONGODB_DB_NAME]
+            if db[MONGODB_CHECKPOINT_COLLECTION].find_one(
+                {"thread_id": thread_id}, {"_id": 1}
+            ):
+                return True
+            return db["session_display_messages"].find_one(
+                {"thread_id": thread_id}, {"_id": 1}
+            ) is not None
+        except Exception as error:
+            # 无法核实历史时按已有旧会话处理，避免把未知上下文送入 PC Agent。
+            print(f"[AgentLoader] 检查会话历史失败，按旧会话隔离: {error}")
+            return True
+
+    def set_session_domain(self, thread_id: str, domain: str) -> str:
+        """首次写入会话领域，已有会话的领域不允许被切换。"""
+        if domain not in ("car", "pc"):
+            raise ValueError(f"不支持的采购领域：{domain}")
+        if self._mongodb_client is None:
+            raise RuntimeError("会话元数据存储尚未初始化")
+        now = datetime.now()
+        collection = self._mongodb_client[MONGODB_DB_NAME]["session_metadata"]
+        collection.update_one(
+            {"thread_id": thread_id},
+            {
+                "$setOnInsert": {
+                    "thread_id": thread_id,
+                    "domain": domain,
+                    "created_at": now,
+                },
+                "$set": {"updated_at": now},
+            },
+            upsert=True,
+        )
+        return self.get_session_domain(thread_id)
 
     # checkpointer 已由 main_agent 内部通过 MongoDBSaver 统一管理，
     # 不再在 AgentLoader 中重复创建。Agent 的 astream/aget_state 等
@@ -147,8 +226,9 @@ class AgentLoader:
         config = self.create_config(thread_id)
         states = []
 
-        # 使用 agent.get_state_history 获取历史
-        async for state in self.agent.aget_state_history(config):
+        # 从会话元数据选择匹配领域的 Agent，避免跨图读取 checkpoint。
+        graph = await self.get_agent_for_domain(self.get_session_domain(thread_id))
+        async for state in graph.aget_state_history(config):
             states.append(state)
             if len(states) >= limit:
                 break
@@ -168,7 +248,8 @@ class AgentLoader:
         config = self.create_config(thread_id)
 
         try:
-            state = await self.agent.aget_state(config)
+            graph = await self.get_agent_for_domain(self.get_session_domain(thread_id))
+            state = await graph.aget_state(config)
             if state and state.values:
                 return state.values.get("messages", [])
         except Exception as e:
@@ -257,6 +338,7 @@ class AgentLoader:
             # 同步删除展示消息
             display_collection = db["session_display_messages"]
             display_result = display_collection.delete_many({"thread_id": thread_id})
+            db["session_metadata"].delete_many({"thread_id": thread_id})
             print(f"[AgentLoader] 已删除会话 {thread_id}，checkpoint {result.deleted_count} 条，展示消息 {display_result.deleted_count} 条")
             return True
         except Exception as e:

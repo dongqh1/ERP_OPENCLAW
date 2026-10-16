@@ -23,7 +23,7 @@ from agent.config import (
 )
 
 
-def setup_sandbox(config, sandbox_id=None, image=None) -> OpenSandboxBackend:
+def setup_sandbox(config, sandbox_id=None, image=None, skill_scopes=None) -> OpenSandboxBackend:
     """
     获取或创建沙箱，播种基础文件。
 
@@ -31,6 +31,7 @@ def setup_sandbox(config, sandbox_id=None, image=None) -> OpenSandboxBackend:
         config: ConnectionConfigSync 配置。
         sandbox_id: 可选，要连接的现有沙箱 ID。
         image: 可选，创建新沙箱时使用的镜像。
+        skill_scopes: 可选，只向该领域沙箱播种指定的顶层技能目录。
 
     Returns:
         OpenSandboxBackend 实例。
@@ -75,7 +76,7 @@ def setup_sandbox(config, sandbox_id=None, image=None) -> OpenSandboxBackend:
     _ensure_dirs(backend)
 
     # 播种基础文件（AGENTS.md、Skills）
-    _seed_files(backend)
+    _seed_files(backend, allowed_scopes=skill_scopes)
 
     # 创建 Python venv + 预装第三方依赖
     _create_venv(backend)
@@ -140,12 +141,15 @@ def _create_venv(backend: OpenSandboxBackend) -> None:
             print(f"[WARNING] {pkg} 安装失败: {result.output[:200]}")
 
 
-def _seed_files(backend: OpenSandboxBackend) -> None:
+def _seed_files(
+    backend: OpenSandboxBackend,
+    allowed_scopes: set[str] | None = None,
+) -> None:
     """
     将本地技能文件上传到沙箱。
 
     AGENTS.md 已迁移到 StoreBackend（全局共享，不经过沙箱）。
-    仅上传在沙箱中尚不存在的文件，避免覆盖已更新的内容。
+    幂等同步指定 scope 中缺失或内容发生变化的文件。
     """
     file_mapping: List[Tuple[Path, str]] = []
 
@@ -154,6 +158,8 @@ def _seed_files(backend: OpenSandboxBackend) -> None:
     if skills_base.exists():
         for skill_dir in skills_base.iterdir():
             if not skill_dir.is_dir():
+                continue
+            if allowed_scopes is not None and skill_dir.name not in allowed_scopes:
                 continue
             for local_file in skill_dir.rglob("*"):
                 if local_file.is_file():

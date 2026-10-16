@@ -5,28 +5,58 @@
       <!-- 空状态 -->
       <div v-if="displayMessages.length === 0" class="empty-state">
         <div class="empty-content">
-          <div class="eyebrow">采购分析 · 方案评估 · 人工审批</div>
-          <h2>企业采购决策助手</h2>
-          <p class="intro">描述采购需求，结合可核实的业务数据分析预算、交期和配置约束。</p>
+          <div class="hero-topline">
+            <div class="eyebrow"><span class="eyebrow-dot"></span>采衡 · 采购决策工作台</div>
+            <span class="hero-edition">PERSONAL WORKSPACE <i>／</i> 01</span>
+          </div>
+          <div class="hero-copy">
+            <h2>让每一笔采购，<br /><span>都有据可依。</span></h2>
+            <p class="intro">从需求梳理、信息核验到方案比选与订单确认，把采购判断变成清晰、可追溯的工作流程。</p>
+          </div>
+          <div class="workflow-strip" aria-label="采购工作流">
+            <span><b>01</b> 描述需求</span>
+            <i aria-hidden="true"></i>
+            <span><b>02</b> 核验与比选</span>
+            <i aria-hidden="true"></i>
+            <span><b>03</b> 确认执行</span>
+          </div>
           <div class="direction-list">
-            <section class="direction-card">
-              <span class="direction-icon" aria-hidden="true">📋</span>
-              <h3>研发项目采购</h3>
-              <p>围绕项目预算与交付期限，对物料、供应商和报价进行约束分析。</p>
-              <button type="button" class="suggestion-button" :disabled="streaming" @click="selectSuggestion(projectSuggestion)">
-                试试项目采购分析 <span aria-hidden="true">→</span>
+            <section class="direction-card project-card" :class="{ 'is-selected': domain === 'car' }">
+              <div class="card-topline">
+                <span class="card-index">01 <i>／</i> CAR PARTS</span>
+                <span class="card-monogram" aria-hidden="true">CAR</span>
+              </div>
+              <div class="card-copy">
+                <h3>汽车零部件采购</h3>
+                <p>查询模拟 ERP 零件、供应商、库存与采购记录；按车型关键词核验适配信息。</p>
+              </div>
+              <button type="button" class="domain-choice-button" :aria-pressed="domain === 'car'" @click="$emit('domain-select', 'car')">
+                {{ domain === 'car' ? '当前领域 · 汽车采购' : '进入汽车采购' }}
+              </button>
+              <button type="button" class="suggestion-button" :disabled="streaming" @click="selectDomainSuggestion('car', carSuggestion)">
+                <span>试用零件查询示例</span><span class="button-arrow" aria-hidden="true">↗</span>
               </button>
             </section>
-            <section class="direction-card">
-              <span class="direction-icon" aria-hidden="true">💻</span>
-              <h3>企业 IT 设备采购</h3>
-              <p>按设备配置、数量、总预算、到货期与保修要求筛选已核实的候选方案。</p>
-              <button type="button" class="suggestion-button" :disabled="streaming" @click="selectSuggestion(itSuggestion)">
-                试试 IT 设备采购 <span aria-hidden="true">→</span>
+            <section class="direction-card pc-card" :class="{ 'is-selected': domain === 'pc' }">
+              <div class="card-topline">
+                <span class="card-index">02 <i>／</i> PC BUILD</span>
+                <span class="card-monogram" aria-hidden="true">PC</span>
+              </div>
+              <div class="card-copy">
+                <h3>PC 电脑配置采购</h3>
+                <p>按预算、用途、分辨率和新旧偏好规划整机；保留已有硬件并校验配置兼容。</p>
+              </div>
+              <button type="button" class="domain-choice-button" :aria-pressed="domain === 'pc'" @click="$emit('domain-select', 'pc')">
+                {{ domain === 'pc' ? '当前领域 · PC 配置' : '进入电脑配置采购' }}
               </button>
+              <div class="quick-prompts">
+                <button type="button" :disabled="streaming" @click="selectDomainSuggestion('pc', pcGamingSuggestion)">8000 元 · RDR2 / 2K</button>
+                <button type="button" :disabled="streaming" @click="selectDomainSuggestion('pc', gpuKeepSuggestion)">已有 RTX 4070 Super</button>
+                <button type="button" :disabled="streaming" @click="selectDomainSuggestion('pc', cpuKeepSuggestion)">保留 7800X3D</button>
+              </div>
             </section>
           </div>
-          <p class="data-note">分析结果取决于 ERP、供应商报价或用户提供的真实数据；订单操作需人工确认。</p>
+          <p class="data-note"><span class="note-rule"></span>当前汽车 ERP 与 PC 硬件目录均为本地模拟数据；PC 性能定位为演示评分，不是实测帧率。</p>
         </div>
       </div>
 
@@ -66,15 +96,22 @@ const props = defineProps({
   showToolCalls: {
     type: Boolean,
     default: true
+  },
+  domain: {
+    type: String,
+    default: 'car'
   }
 })
 
-const emit = defineEmits(['suggestion'])
-const projectSuggestion = '请分析一个研发项目的采购方案：预算 8 万元，计划在 2026-11-30 前到货。请先查询 ERP 中的物料、库存和供应商报价，列出缺失信息，再比较符合预算与交期的方案。'
-const itSuggestion = '请分析企业 IT 设备采购：笔记本电脑数量 20 台，配置至少 8 核 CPU、16GB 内存、512GB 存储，操作系统为 Windows 11，总预算 16 万元，希望在 2026-11-30 前到货，保修至少 24 个月。请查询已核实的设备型号、报价和交期，标出待确认信息，不要使用未核实报价生成订单。'
+const emit = defineEmits(['suggestion', 'domain-select'])
+const carSuggestion = '请查询摩托车零部件“火花塞”的 ERP 物料、供应商、库存和历史采购记录，并说明当前模拟数据中是否有明确车型适配信息。'
+const pcGamingSuggestion = '预算 8000 元配置一台主机，主要玩《荒野大镖客 2》和 3A 游戏，目标 2K 分辨率、60 FPS，只要全新硬件。请生成配置并检查兼容性。'
+const gpuKeepSuggestion = '预算 4000 元，我已经有 RTX 4070 Super，请保留这张显卡，推荐其余硬件，检查兼容性并说明新购总价。'
+const cpuKeepSuggestion = '预算 6000 元，主要玩 3A 游戏，请保留我的 Ryzen 7 7800X3D CPU，搭配其余硬件并检查兼容性。'
 
-function selectSuggestion(message) {
+function selectDomainSuggestion(domain, message) {
   if (props.streaming) return
+  emit('domain-select', domain)
   emit('suggestion', message)
 }
 
@@ -138,14 +175,17 @@ function scrollToBottom() {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #ffffff;
+  min-width: 0;
+  background: #f5f4ee;
 }
 
 /* 消息列表 */
 .message-list {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 0;
+  padding: 22px 0 28px;
+  scrollbar-color: #c9c9ba transparent;
+  scrollbar-width: thin;
 }
 
 .message-list::-webkit-scrollbar {
@@ -157,128 +197,323 @@ function scrollToBottom() {
 }
 
 .message-list::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: #c9c9ba;
+  border-radius: 6px;
 }
 
 .message-list::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #a9ad9d;
 }
 
 /* 空状态 */
 .empty-state {
   min-height: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 48px 24px;
-  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  padding: clamp(30px, 7vh, 74px) clamp(20px, 5vw, 64px) 52px;
+  background:
+    radial-gradient(ellipse at 85% 8%, rgba(211, 219, 191, 0.26), transparent 29%),
+    #f5f4ee;
 }
 
 .empty-content {
-  width: min(100%, 880px);
+  width: min(100%, 920px);
+  margin: 0 auto;
+}
+
+.hero-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #dcded2;
 }
 
 .eyebrow {
-  margin-bottom: 12px;
-  color: #0f766e;
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #53654d;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
+}
+
+.eyebrow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9a6c41;
+  box-shadow: 0 0 0 4px rgba(154, 108, 65, 0.11);
+}
+
+.hero-edition {
+  color: #96998e;
+  font: 9px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+.hero-edition i,
+.card-index i {
+  color: #b6b7a9;
+  font-style: normal;
+  padding: 0 3px;
+}
+
+.hero-copy {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  padding: clamp(29px, 5vh, 49px) 0 27px;
 }
 
 .empty-state h2 {
-  font-size: clamp(26px, 4vw, 36px);
+  color: #1e2e25;
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-size: clamp(32px, 4.2vw, 48px);
   font-weight: 700;
-  color: #0f172a;
-  margin-bottom: 12px;
+  letter-spacing: 0.045em;
+  line-height: 1.38;
+  white-space: nowrap;
 }
 
+.empty-state h2 span { color: #78875c; }
+
 .intro {
-  font-size: 15px;
-  color: #64748b;
-  line-height: 1.7;
-  margin-bottom: 28px;
+  max-width: 330px;
+  margin: 0 0 5px;
+  color: #73796d;
+  font-size: 13px;
+  line-height: 1.95;
 }
+
+.workflow-strip {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 18px;
+  padding: 12px 0;
+  border-top: 1px solid #e2e2d8;
+  border-bottom: 1px solid #e2e2d8;
+  color: #686f62;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.workflow-strip span { white-space: nowrap; }
+.workflow-strip b { margin-right: 5px; color: #8a6749; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.workflow-strip i { width: 24px; height: 1px; background: #c8cbbd; }
 
 .direction-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 13px;
 }
 
 .direction-card {
   display: flex;
   flex-direction: column;
+  min-height: 211px;
+  padding: 18px 20px 17px;
+  border: 1px solid #e1e0d4;
+  border-radius: 12px;
+  background: rgba(255, 254, 249, 0.86);
+  box-shadow: 0 7px 20px rgba(43, 50, 39, 0.035);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.direction-card:hover {
+  transform: translateY(-2px);
+  border-color: #c5cbb5;
+  box-shadow: 0 12px 28px rgba(43, 50, 39, 0.075);
+}
+
+.direction-card.is-selected {
+  border-color: #77866b;
+  box-shadow: 0 0 0 2px rgba(119, 134, 107, 0.13), 0 12px 28px rgba(43, 50, 39, 0.075);
+}
+
+.domain-choice-button {
+  width: 100%;
+  min-height: 36px;
+  margin-top: auto;
+  border: 1px solid #d5d9ca;
+  border-radius: 7px;
+  color: #354331;
+  background: #f3f5ed;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.domain-choice-button:hover {
+  border-color: #9aa68d;
+  background: #eaf0e2;
+}
+
+.quick-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.quick-prompts button {
+  padding: 6px 8px;
+  border: 1px solid #e3ddd2;
+  border-radius: 999px;
+  color: #665744;
+  background: #fbf7f0;
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.quick-prompts button:hover {
+  border-color: #cbbba5;
+  background: #f7efe4;
+}
+
+.quick-prompts button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.card-topline {
+  display: flex;
   align-items: flex-start;
-  min-height: 246px;
-  padding: 24px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
 
-.direction-icon {
-  font-size: 26px;
-  margin-bottom: 16px;
+.card-index {
+  color: #85897c;
+  font: 9px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.08em;
 }
 
-.direction-card h3 {
+.card-monogram {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d8ddca;
+  border-radius: 9px 9px 9px 3px;
+  color: #647151;
+  background: #f3f5eb;
+  font: 10px ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.06em;
+}
+
+.pc-card .card-monogram {
+  border-color: #e4d7c8;
+  color: #966b47;
+  background: #f8f1e9;
+}
+
+.parts-card .card-monogram {
+  border-color: #d4dfd0;
+  color: #557259;
+  background: #eff5ed;
+}
+
+.card-copy h3 {
+  margin: 0 0 8px;
+  color: #29362c;
+  font-family: 'Noto Serif SC', 'Songti SC', serif;
   font-size: 18px;
-  color: #0f172a;
-  margin-bottom: 10px;
+  font-weight: 700;
+  letter-spacing: 0.025em;
 }
 
-.direction-card p {
-  font-size: 14px;
-  color: #64748b;
-  line-height: 1.6;
-  margin-bottom: 22px;
+.card-copy p {
+  max-width: 380px;
+  margin: 0 0 15px;
+  color: #73796d;
+  font-size: 11px;
+  line-height: 1.75;
 }
 
 .suggestion-button {
   margin-top: auto;
-  padding: 10px 14px;
-  color: #0f766e;
-  background: #f0fdfa;
-  border: 1px solid #99f6e4;
-  border-radius: 9px;
-  font-size: 14px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 9px 0 0;
+  border: 0;
+  border-top: 1px solid #e7e6dc;
+  color: #4e6348;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  text-align: left;
   cursor: pointer;
+  transition: color 160ms ease;
 }
 
-.suggestion-button:hover:not(:disabled) {
-  background: #ccfbf1;
-}
+.suggestion-button:hover:not(:disabled) { color: #986b43; }
 
 .suggestion-button:focus-visible {
-  outline: 2px solid #0f766e;
+  outline: 2px solid #71815a;
   outline-offset: 2px;
 }
 
 .suggestion-button:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
+.button-arrow { font-size: 16px; line-height: 0.8; }
+
 .data-note {
-  margin-top: 20px;
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.6;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 17px;
+  color: #85897d;
+  font-size: 10px;
+  line-height: 1.65;
+}
+
+.note-rule { width: 17px; height: 1px; flex: 0 0 17px; background: #b4936e; }
+
+@media (max-width: 760px) {
+  .empty-state { padding-right: 28px; padding-left: 28px; }
+  .hero-copy { gap: 22px; }
+  .empty-state h2 { font-size: clamp(28px, 5vw, 40px); }
+  .intro { max-width: 275px; font-size: 12px; }
+  .direction-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .direction-card { padding: 16px; }
 }
 
 @media (max-width: 680px) {
-  .empty-state { padding: 32px 18px; }
+  .empty-state { padding: 29px 18px 36px; }
+  .hero-copy { align-items: flex-start; flex-direction: column; gap: 13px; padding: 28px 0 20px; }
+  .empty-state h2 { font-size: clamp(31px, 8vw, 42px); }
+  .intro { max-width: 440px; margin: 0; }
+  .workflow-strip { gap: 8px; font-size: 9px; }
+  .workflow-strip i { width: 14px; }
   .direction-list { grid-template-columns: 1fr; }
-  .direction-card { min-height: 0; }
+  .direction-card { min-height: 0; padding: 16px 18px; }
+  .card-topline { margin-bottom: 12px; }
+  .hero-edition { font-size: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .direction-card { transition: none; }
 }
 
 /* 消息列表 */
 .messages {
-  max-width: 1200px;
+  width: min(100%, 1050px);
   margin: 0 auto;
 }
 </style>

@@ -82,6 +82,8 @@ def resolve_subagent_tools(
     configs: List[Dict],
     available_tools: List,
     extra_middleware: Dict[str, List] | None = None,
+    *,
+    require_all_tools: bool = False,
 ) -> List[Dict]:
     """
     将 YAML 配置中的工具名称字符串解析为实际的工具可调用对象。
@@ -114,6 +116,7 @@ def resolve_subagent_tools(
     for config in configs:
         tool_names = config.get("tools", [])
         resolved_tools = []
+        missing_patterns = []
 
         for pattern in tool_names:
             matched = False
@@ -122,10 +125,17 @@ def resolve_subagent_tools(
                     resolved_tools.append(tool_obj)
                     matched = True
             if not matched:
+                missing_patterns.append(pattern)
                 print(
                     f"[WARNING] 子 Agent '{config['name']}': "
                     f"工具模式 '{pattern}' 未能匹配任何可用工具"
                 )
+
+        if require_all_tools and missing_patterns:
+            raise RuntimeError(
+                f"子 Agent '{config['name']}' 配置了未加载的工具: "
+                f"{', '.join(missing_patterns)}"
+            )
 
         # 去重（保留顺序）
         seen = set()

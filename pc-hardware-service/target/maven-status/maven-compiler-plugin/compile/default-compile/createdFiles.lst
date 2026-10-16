@@ -1,0 +1,13 @@
+com\procurement\pchardware\api\HardwareController.class
+com\procurement\pchardware\model\BudgetOptimizationRequest.class
+com\procurement\pchardware\service\CompatibilityService.class
+com\procurement\pchardware\repository\HardwareCatalogRepository.class
+com\procurement\pchardware\service\BudgetOptimizerService.class
+com\procurement\pchardware\model\HardwareComparisonRequest.class
+com\procurement\pchardware\repository\JsonHardwareCatalogRepository$1.class
+com\procurement\pchardware\service\BudgetOptimizerService$Candidate.class
+com\procurement\pchardware\model\KeepComponent.class
+com\procurement\pchardware\PcHardwareServiceApplication.class
+com\procurement\pchardware\repository\JsonHardwareCatalogRepository.class
+com\procurement\pchardware\model\CompatibilityRequest.class
+com\procurement\pchardware\service\HardwareCatalogService.class

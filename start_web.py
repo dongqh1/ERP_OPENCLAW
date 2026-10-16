@@ -17,20 +17,23 @@ def run_backend():
     print("[Backend] Starting FastAPI service...")
     print("[Backend] Using uvicorn at http://localhost:8090")
 
-    project_root = os.path.dirname(os.path.abspath(__file__))
-    src_dir = os.path.join(project_root, "src")
+    project_root = os.path.dirname(os.path.abspath(__file__)) # 获取项目根目录
+    src_dir = os.path.join(project_root, "src") # 获取 src 目录路径
     env = os.environ.copy()
-    env["PYTHONPATH"] = src_dir + os.pathsep + env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = src_dir + os.pathsep + env.get("PYTHONPATH", "") # 设置 PYTHONPATH 环境变量
 
     backend_proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "api_view.web_main:app",
-         "--reload", "--host", "0.0.0.0", "--port", "8090"],
+    [sys.executable, "-u", "-m", "uvicorn", "api_view.web_main:app",
+    "--host", "0.0.0.0", "--port", "8090"],
         cwd=project_root,
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         bufsize=1
-    )
+    ) # 等价于 uvicorn api_view.web_main:app \
+# --reload \
+# --host 0.0.0.0 \
+# --port 8090
 
     # 实时输出后端日志
     def output_backend():
@@ -50,14 +53,14 @@ def run_backend():
     return backend_proc
 
 def check_backend_ready(max_wait=180):
-    """检查后端是否就绪"""
+    """检查后端是否就绪""" # 检测agent是否初始化完成 最多等待180s
     print("[System] Waiting for backend to be ready...")
     start_time = time.time()
 
     while time.time() - start_time < max_wait:
         try:
             import urllib.request
-            req = urllib.request.Request("http://localhost:8090/health")
+            req = urllib.request.Request("http://localhost:8090/health") # 访问后端健康检查接口
             response = urllib.request.urlopen(req, timeout=5)
             if response.status == 200:
                 data = response.read().decode('utf-8')
@@ -102,7 +105,7 @@ def run_frontend():
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         bufsize=1
-    )
+    ) # npm run dev
 
     # 实时输出前端日志
     def output_frontend():
@@ -126,8 +129,8 @@ def main():
     print("         DeepAgent Web Application Launcher")
     print("=" * 60)
     print()
-    print("NOTE: Agent initialization takes 30-60 seconds")
-    print("      Please wait patiently for the service to be ready")
+    print("NOTE: Domain Agents initialize lazily when the first message for that domain arrives")
+    print("      Start the matching domain MCP and Java services before sending a request")
     print()
 
     backend_proc = None
